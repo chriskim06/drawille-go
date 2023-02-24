@@ -1,13 +1,16 @@
 package drawille
 
-//import "code.google.com/p/goncurses"
-import "math"
+import (
+	"math"
+	"strings"
+)
 
 var pixel_map = [4][2]int{
 	{0x1, 0x8},
 	{0x2, 0x10},
 	{0x4, 0x20},
-	{0x40, 0x80}}
+	{0x40, 0x80},
+}
 
 // Braille chars start at 0x2800
 var braille_char_offset = 0x2800
@@ -27,9 +30,17 @@ func getPixel(y, x int) int {
 	return pixel_map[cy][cx]
 }
 
+type Cell struct {
+	val   int
+	color AnsiColor
+}
+
 type Canvas struct {
 	LineEnding string
-	chars      map[int]map[int]int
+	LineColors []AnsiColor
+
+	// a map of the entire braille grid
+	chars map[int]map[int]Cell
 }
 
 // Make a new canvas
@@ -39,9 +50,14 @@ func NewCanvas() Canvas {
 	return c
 }
 
+// Clear all pixels
+func (c *Canvas) Clear() {
+	c.chars = make(map[int]map[int]Cell)
+}
+
 func (c Canvas) MaxY() int {
 	max := 0
-	for k, _ := range c.chars {
+	for k := range c.chars {
 		if k > max {
 			max = k
 		}
@@ -51,7 +67,7 @@ func (c Canvas) MaxY() int {
 
 func (c Canvas) MinY() int {
 	min := 0
-	for k, _ := range c.chars {
+	for k := range c.chars {
 		if k < min {
 			min = k
 		}
@@ -62,7 +78,7 @@ func (c Canvas) MinY() int {
 func (c Canvas) MaxX() int {
 	max := 0
 	for _, v := range c.chars {
-		for k, _ := range v {
+		for k := range v {
 			if k > max {
 				max = k
 			}
@@ -74,7 +90,7 @@ func (c Canvas) MaxX() int {
 func (c Canvas) MinX() int {
 	min := 0
 	for _, v := range c.chars {
-		for k, _ := range v {
+		for k := range v {
 			if k < min {
 				min = k
 			}
@@ -83,44 +99,42 @@ func (c Canvas) MinX() int {
 	return min * 2
 }
 
-// Clear all pixels
-func (c *Canvas) Clear() {
-	c.chars = make(map[int]map[int]int)
-}
-
-// Convert x,y to cols, rows
-func (c Canvas) get_pos(x, y int) (int, int) {
-	return (x / 2), (y / 4)
-}
-
 // Set a pixel of c
-func (c *Canvas) Set(x, y int) {
-	px, py := c.get_pos(x, y)
+func (c *Canvas) Set(lineNum, x, y int) {
+	px, py := getPos(x, y)
 	if m := c.chars[py]; m == nil {
-		c.chars[py] = make(map[int]int)
+		c.chars[py] = make(map[int]Cell)
 	}
-	val := c.chars[py][px]
-	mapv := getPixel(y, x)
-	c.chars[py][px] = val | mapv
+	color := Default
+	if lineNum >= 0 && lineNum < len(c.LineColors) {
+		color = c.LineColors[lineNum]
+	}
+	cell := c.chars[py][px]
+	c.chars[py][px] = Cell{
+		val:   cell.val | getPixel(y, x),
+		color: color,
+	}
 }
 
 // Unset a pixel of c
-func (c *Canvas) UnSet(x, y int) {
-	px, py := c.get_pos(x, y)
+func (c *Canvas) Unset(x, y int) {
+	px, py := getPos(x, y)
 	x, y = int(math.Abs(float64(x))), int(math.Abs(float64(y)))
 	if m := c.chars[py]; m == nil {
-		c.chars[py] = make(map[int]int)
+		c.chars[py] = make(map[int]Cell)
 	}
-	c.chars[py][px] = c.chars[py][px] &^ getPixel(y, x)
+	dot := c.chars[py][px]
+	dot.val = dot.val &^ getPixel(y, x)
+	c.chars[py][px] = dot
 }
 
 // Toggle a point
-func (c *Canvas) Toggle(x, y int) {
-	px, py := c.get_pos(x, y)
-	if (c.chars[py][px] & getPixel(y, x)) != 0 {
-		c.UnSet(x, y)
+func (c *Canvas) Toggle(lineNum, x, y int) {
+	px, py := getPos(x, y)
+	if (c.chars[py][px].val & getPixel(y, x)) != 0 {
+		c.Unset(x, y)
 	} else {
-		c.Set(x, y)
+		c.Set(lineNum, x, y)
 	}
 }
 
@@ -128,29 +142,32 @@ func (c *Canvas) Toggle(x, y int) {
 func (c *Canvas) SetText(x, y int, text string) {
 	x, y = x/2, y/4
 	if m := c.chars[y]; m == nil {
-		c.chars[y] = make(map[int]int)
+		c.chars[y] = make(map[int]Cell)
 	}
 	for i, char := range text {
-		c.chars[y][x+i] = int(char) - braille_char_offset
+		c.chars[y][x+i] = Cell{
+			val:   int(char) - braille_char_offset,
+			color: Default,
+		}
 	}
 }
 
 // Get pixel at the given coordinates
 func (c Canvas) Get(x, y int) bool {
-	dot_index := pixel_map[y%4][x%2]
+	dot_index := pixel_map[y%4][x%2] //3,3 - 1,3
 	x, y = x/2, y/4
-	char := c.chars[y][x]
+	char := c.chars[y][x].val
 	return (char & dot_index) != 0
 }
 
 // Get character at the given screen coordinates
 func (c Canvas) GetScreenCharacter(x, y int) rune {
-	return rune(c.chars[y][x] + braille_char_offset)
+	return rune(c.chars[y][x].val + braille_char_offset)
 }
 
 // Get character for the given pixel
 func (c Canvas) GetCharacter(x, y int) rune {
-	return c.GetScreenCharacter(x/4,y/4)
+	return c.GetScreenCharacter(x/4, y/4)
 }
 
 // Retrieve the rows from a given view
@@ -158,33 +175,41 @@ func (c Canvas) Rows(minX, minY, maxX, maxY int) []string {
 	minrow, maxrow := minY/4, (maxY)/4
 	mincol, maxcol := minX/2, (maxX)/2
 
-	ret := make([]string, 0)
+	s := make([]string, 0)
 	for rownum := minrow; rownum < (maxrow + 1); rownum = rownum + 1 {
-		row := ""
+		color := Default
+		var b strings.Builder
 		for x := mincol; x < (maxcol + 1); x = x + 1 {
-			char := c.chars[rownum][x]
-			row += string(rune(char + braille_char_offset))
+			dot := c.chars[rownum][x]
+			if dot.color != color {
+				color = dot.color
+				b.WriteString(dot.color.String())
+			}
+			b.WriteString(string(rune(dot.val + braille_char_offset)))
+			if color != Default {
+				b.WriteString(Default.String())
+			}
 		}
-		ret = append(ret, row)
+		s = append(s, b.String())
 	}
-	return ret
+	return s
 }
 
 // Retrieve a string representation of the frame at the given parameters
 func (c Canvas) Frame(minX, minY, maxX, maxY int) string {
-	var ret string
+	var b strings.Builder
 	for _, row := range c.Rows(minX, minY, maxX, maxY) {
-		ret += row
-		ret += c.LineEnding
+		b.WriteString(row)
+		b.WriteString(c.LineEnding)
 	}
-	return ret
+	return b.String()
 }
 
 func (c Canvas) String() string {
 	return c.Frame(c.MinX(), c.MinY(), c.MaxX(), c.MaxY())
 }
 
-func (c *Canvas) DrawLine(x1, y1, x2, y2 float64) {
+func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
 	xdiff := math.Abs(x1 - x2)
 	ydiff := math.Abs(y2 - y1)
 
@@ -201,8 +226,7 @@ func (c *Canvas) DrawLine(x1, y1, x2, y2 float64) {
 	}
 
 	r := math.Max(xdiff, ydiff)
-
-	for i := 0; i < round(r)+1; i = i + 1 {
+	for i := 0; i < round(r)+1; i++ {
 		x, y := x1, y1
 		if ydiff != 0 {
 			y += (float64(i) * ydiff) / (r * ydir)
@@ -210,27 +234,13 @@ func (c *Canvas) DrawLine(x1, y1, x2, y2 float64) {
 		if xdiff != 0 {
 			x += (float64(i) * xdiff) / (r * xdir)
 		}
-		c.Toggle(round(x), round(y))
+		c.Toggle(lineNum, round(x), round(y))
 	}
 }
 
-func (c *Canvas) DrawPolygon(center_x, center_y, sides, radius float64) {
-	degree := 360 / sides
-	for n := 0; n < int(sides); n = n + 1 {
-		a := float64(n) * degree
-		b := float64(n+1) * degree
-
-		x1 := (center_x + (math.Cos(radians(a)) * (radius/2 + 1)))
-		y1 := (center_y + (math.Sin(radians(a)) * (radius/2 + 1)))
-		x2 := (center_x + (math.Cos(radians(b)) * (radius/2 + 1)))
-		y2 := (center_y + (math.Sin(radians(b)) * (radius/2 + 1)))
-
-		c.DrawLine(x1, y1, x2, y2)
-	}
-}
-
-func radians(d float64) float64 {
-	return d * (math.Pi / 180)
+// Convert x, y to cols, rows
+func getPos(x, y int) (int, int) {
+	return (x / 2), (y / 4)
 }
 
 func round(x float64) int {
