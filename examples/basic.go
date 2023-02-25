@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	s := drawille.NewCanvas()
+	s := drawille.NewCanvas(50, 25)
 	s.LineColors = []drawille.AnsiColor{
 		drawille.Red,
 		drawille.RoyalBlue,
@@ -21,11 +21,12 @@ func main() {
 
 	// s.Clear()
 
+	data := [][]float64{{}, {}}
 	for x := 0; x < 1800; x = x + 10 {
-		s.Set(0, x/10, int(10+math.Sin((math.Pi/180)*float64(x))*10+0.5))
-		s.Set(1, x/10, int(10+math.Cos((math.Pi/180)*float64(x))*10+0.5))
+		data[0] = append(data[0], 10+math.Sin((math.Pi/180)*float64(x))*10+0.5)
+		data[1] = append(data[1], 10+math.Cos((math.Pi/180)*float64(x))*10+0.5)
 	}
-	fmt.Print(s)
+	fmt.Println(s.Plot(data))
 
 	// s.Clear()
 

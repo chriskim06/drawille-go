@@ -1,10 +1,12 @@
 package drawille
 
+// Cell represents the braille character at some coordinate in the canvas
 type Cell struct {
 	val   int
 	color AnsiColor
 }
 
+// Canvas is a plot of braille characters
 type Canvas struct {
 	LineEnding string
 	LineColors []AnsiColor
@@ -14,6 +16,7 @@ type Canvas struct {
 	maxX, maxY    int
 
 	// a map of the entire braille grid
+	// the map is map[row][col] = cell
 	chars map[int]map[int]Cell
 }
 
@@ -24,8 +27,6 @@ func NewCanvas(width, height int) Canvas {
 		chars:      make(map[int]map[int]Cell),
 		width:      width,
 		height:     height,
-		minX:       0,
-		minY:       0,
 	}
 	return c
 }

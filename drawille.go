@@ -1,6 +1,7 @@
 package drawille
 
 import (
+	"fmt"
 	"math"
 	"strings"
 )
@@ -54,18 +55,18 @@ func (c Canvas) MinX() int {
 	return min * 2
 }
 
-// Set a pixel of c
+// Set a braille char of c
 func (c *Canvas) Set(lineNum, x, y int) {
-	px, py := getPos(x, y)
-	if m := c.chars[py]; m == nil {
-		c.chars[py] = make(map[int]Cell)
+	col, row := getPos(x, y)
+	if m := c.chars[row]; m == nil {
+		c.chars[row] = make(map[int]Cell)
 	}
 	color := Default
 	if lineNum >= 0 && lineNum < len(c.LineColors) {
 		color = c.LineColors[lineNum]
 	}
-	cell := c.chars[py][px]
-	c.chars[py][px] = Cell{
+	cell := c.chars[row][col]
+	c.chars[row][col] = Cell{
 		val:   cell.val | getPixel(y, x),
 		color: color,
 	}
@@ -73,34 +74,26 @@ func (c *Canvas) Set(lineNum, x, y int) {
 
 // Unset a pixel of c
 func (c *Canvas) Unset(x, y int) {
-	px, py := getPos(x, y)
-	x, y = int(math.Abs(float64(x))), int(math.Abs(float64(y)))
-	if m := c.chars[py]; m == nil {
-		c.chars[py] = make(map[int]Cell)
+	col, row := getPos(x, y)
+	// x, y = int(math.Abs(float64(x))), int(math.Abs(float64(y)))
+	if m := c.chars[row]; m == nil {
+		c.chars[row] = make(map[int]Cell)
 	}
-	dot := c.chars[py][px]
-	dot.val = dot.val &^ getPixel(y, x)
-	c.chars[py][px] = dot
-}
-
-// Toggle a point
-func (c *Canvas) Toggle(lineNum, x, y int) {
-	px, py := getPos(x, y)
-	if (c.chars[py][px].val & getPixel(y, x)) != 0 {
-		c.Unset(x, y)
-	} else {
-		c.Set(lineNum, x, y)
+	cell := c.chars[row][col]
+	c.chars[row][col] = Cell{
+		val:   cell.val &^ getPixel(y, x),
+		color: Default,
 	}
 }
 
 // Set text to the given coordinates
 func (c *Canvas) SetText(x, y int, text string) {
-	px, py := x/2, y/4
-	if m := c.chars[py]; m == nil {
+	col, row := getPos(x, y)
+	if m := c.chars[row]; m == nil {
 		c.chars[y] = make(map[int]Cell)
 	}
 	for i, char := range text {
-		c.chars[py][px+i] = Cell{
+		c.chars[row][col+i] = Cell{
 			val:   int(char) - braille_char_offset,
 			color: Default,
 		}
@@ -109,11 +102,12 @@ func (c *Canvas) SetText(x, y int, text string) {
 
 // Retrieve the rows from a given view
 func (c Canvas) Rows(minX, minY, maxX, maxY int) []string {
-	minrow, maxrow := minY/4, (maxY)/4
-	mincol, maxcol := minX/2, (maxX)/2
+	minrow, maxrow := minY/4, maxY/4
+	mincol, maxcol := minX/2, maxX/2
 
+	fmt.Printf("minrow: %d\nmincol: %d\nmaxrow: %d\nmaxcol: %d\n", minrow, mincol, maxrow, maxcol)
 	s := make([]string, 0)
-	for rownum := minrow; rownum < (maxrow + 1); rownum = rownum + 1 {
+	for rownum := minrow; rownum < (maxrow + 1); rownum++ {
 		color := Default
 		var b strings.Builder
 		for x := mincol; x < (maxcol + 1); x = x + 1 {
@@ -144,6 +138,7 @@ func (c Canvas) Frame(minX, minY, maxX, maxY int) string {
 
 func (c Canvas) String() string {
 	// need to be able to deal with setting a fixed canvas height/width
+	fmt.Printf("%d %d %d %d\n", c.minX, c.minY, c.maxX, c.maxY)
 	return c.Frame(c.minX, c.minY, c.maxX, c.maxY)
 }
 
@@ -172,12 +167,13 @@ func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
 		if xdiff != 0 {
 			x += (float64(i) * xdiff) / (r * xdir)
 		}
-		c.Toggle(lineNum, round(x), round(y))
+		row, col := round(y), round(x)
+		c.Set(lineNum, col, row)
 	}
 }
 
 // Plot takes a 2d array of data points, with each inner
-// array being a separate line to graph on the Canvas "┤"
+// array being a separate line to graph on the Canvas
 func (c *Canvas) Plot(data [][]float64) string {
 	// need to get the largest number in the data set to calculate
 	// the offset needed for the y-axis
@@ -189,7 +185,47 @@ func (c *Canvas) Plot(data [][]float64) string {
 	//         would be 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30
 	//       - y-axis labels should also include " ┤ " so that when
 	//         they stack on top of each other it creates the axis
-	maxDataPoint := GetMaxFloat64From2dSlice(data)
+	//       - the horizontal graph width is (c.width - width(y-axis))*2
+	//       - the horizontal graph height is (c.height - height(x-axis))*4
+	//       - when calling DrawLine the y0 and y1 coordinates should
+	//         be percentages of the ymax-ymin value and x0 and x1
+	//         should be incremented starting from 0 only the last graph width
+	//         points of data[*] will be plotted
+	//       - ex: canvas width is 25 and height is 10, max/min values are 30/10
+	//         and there are 50 data points
+	//         - graph width = (25-5)*2 = 40 (40 cells or 20 characters)
+	//         - graph height = (10-1)*4 = 36 (36 cells or 9 characters)
+	//         - will plot data[*][50-40:]
+	// need to set c.minX, c.minY, c.maxX, c.maxY based on data here
+	//   - minX = width(y-axis)
+	//   - minY = height(x-axis) = 1
+	//   - maxX = graph width
+	//   - maxY = graph height
+	// will refer to char coordinates as row/col and pixel coordinates as x/y
+	_, maxDataPoint := GetMinMaxFloat64From2dSlice(data)
+	ex := fmt.Sprintf("%.2f ┤ ", maxDataPoint)
+	yaxisWidth := len(ex)
+	fmt.Printf("'%s', %d\n", ex, yaxisWidth)
+	graphWidth := (c.width - yaxisWidth) * 2
+	graphHeight := (c.height - 1) * 4
+	c.minX, c.minY, c.maxX, c.maxY = yaxisWidth, 1, graphWidth, graphHeight
+	for i, line := range data {
+		if len(line) >= graphWidth {
+			line = line[len(line)-graphWidth:]
+		}
+		previousHeight := int((line[1] / maxDataPoint) * float64(graphHeight))
+		for j, val := range line[1:] {
+			height := int((val / maxDataPoint) * float64(graphHeight))
+			c.DrawLine(
+				i,
+				float64(c.minX+j),
+				float64(c.maxY-previousHeight-1),
+				float64(c.minX+j+1),
+				float64(c.maxY-height-1),
+			)
+			previousHeight = height
+		}
+	}
 	return c.String()
 }
 

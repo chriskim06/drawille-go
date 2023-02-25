@@ -1,5 +1,21 @@
 package drawille
 
+import "math"
+
+// dots:
+//    8x8 cells, 4x2 chars
+//    ,___,___,___,___,
+//    |1 4|1 4|1 4|1 4|
+//    |2 5|2 5|2 5|2 5|
+//    |3 6|3 6|3 6|3 6|
+//    |7 8|7 8|7 8|7 8|
+//    -----------------
+//    |1 4|1 4|1 4|1 4|
+//    |2 5|2 5|2 5|2 5|
+//    |3 6|3 6|3 6|3 6|
+//    |7 8|7 8|7 8|7 8|
+//    `````````````````
+
 var pixel_map = [4][2]int{
 	{0x1, 0x8},
 	{0x2, 0x10},
@@ -25,14 +41,17 @@ func getPixel(y, x int) int {
 	return pixel_map[cy][cx]
 }
 
-func GetMaxFloat64From2dSlice(slices [][]float64) float64 {
-	var max float64
+func GetMinMaxFloat64From2dSlice(slices [][]float64) (float64, float64) {
+	min, max := math.Inf(1), math.Inf(-1)
 	for _, slice := range slices {
 		for _, val := range slice {
 			if val > max {
 				max = val
 			}
+			if val < min {
+				min = val
+			}
 		}
 	}
-	return max
+	return min, max
 }
