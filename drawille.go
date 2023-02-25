@@ -2,6 +2,7 @@ package drawille
 
 import (
 	"fmt"
+	"image"
 	"math"
 	"strings"
 )
@@ -87,10 +88,10 @@ func (c *Canvas) Unset(x, y int) {
 }
 
 // Set text to the given coordinates
-func (c *Canvas) SetText(x, y int, text string) {
-	col, row := getPos(x, y)
+func (c *Canvas) SetText(col, row int, text string) {
+	// col, row := getPos(x, y)
 	if m := c.chars[row]; m == nil {
-		c.chars[y] = make(map[int]Cell)
+		c.chars[row] = make(map[int]Cell)
 	}
 	for i, char := range text {
 		c.chars[row][col+i] = Cell{
@@ -101,22 +102,22 @@ func (c *Canvas) SetText(x, y int, text string) {
 }
 
 // Retrieve the rows from a given view
-func (c Canvas) Rows(minX, minY, maxX, maxY int) []string {
-	minrow, maxrow := minY/4, maxY/4
-	mincol, maxcol := minX/2, maxX/2
+func (c Canvas) Rows(minX, minY, maxX, maxY, offset int) []string {
+	minrow, maxrow := minY, maxY/4
+	mincol, maxcol := minX, maxX/2
 
 	fmt.Printf("minrow: %d\nmincol: %d\nmaxrow: %d\nmaxcol: %d\n", minrow, mincol, maxrow, maxcol)
 	s := make([]string, 0)
-	for rownum := minrow; rownum < (maxrow + 1); rownum++ {
+	for row := 0; row < c.height; row++ {
 		color := Default
 		var b strings.Builder
-		for x := mincol; x < (maxcol + 1); x = x + 1 {
-			dot := c.chars[rownum][x]
-			if dot.color != color {
-				color = dot.color
-				b.WriteString(dot.color.String())
+		for col := 0; col < c.width; col++ {
+			cell := c.chars[row][col]
+			if cell.color != color {
+				color = cell.color
+				b.WriteString(cell.color.String())
 			}
-			b.WriteString(string(rune(dot.val + braille_char_offset)))
+			b.WriteRune(rune(cell.val + braille_char_offset))
 			if color != Default {
 				b.WriteString(Default.String())
 			}
@@ -127,19 +128,24 @@ func (c Canvas) Rows(minX, minY, maxX, maxY int) []string {
 }
 
 // Retrieve a string representation of the frame at the given parameters
-func (c Canvas) Frame(minX, minY, maxX, maxY int) string {
+func (c Canvas) Frame(minX, minY, maxX, maxY, offset int) string {
 	var b strings.Builder
-	for _, row := range c.Rows(minX, minY, maxX, maxY) {
-		b.WriteString(row)
+	rows := c.Rows(minX, minY, maxX, maxY, offset)
+	for i := len(rows) - 1; i >= 0; i-- {
+		b.WriteString(rows[i])
 		b.WriteString(c.LineEnding)
 	}
+	// for _, row := range c.Rows(minX, minY, maxX, maxY, offset) {
+	// 	b.WriteString(row)
+	// 	b.WriteString(c.LineEnding)
+	// }
 	return b.String()
 }
 
 func (c Canvas) String() string {
 	// need to be able to deal with setting a fixed canvas height/width
 	fmt.Printf("%d %d %d %d\n", c.minX, c.minY, c.maxX, c.maxY)
-	return c.Frame(c.minX, c.minY, c.maxX, c.maxY)
+	return c.Frame(c.minX, c.minY, c.maxX, c.maxY, 0)
 }
 
 func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
@@ -172,6 +178,43 @@ func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
 	}
 }
 
+func (c *Canvas) SetLine(lineNum int, p0, p1 image.Point) {
+	for _, p := range line(p0, p1) {
+		x, y := getPos(p.X, p.Y)
+		c.Set(lineNum, x, y)
+	}
+}
+
+func line(p0, p1 image.Point) []image.Point {
+	points := []image.Point{}
+
+	leftPoint, rightPoint := p0, p1
+	if leftPoint.X > rightPoint.X {
+		leftPoint, rightPoint = rightPoint, leftPoint
+	}
+
+	xDistance := absInt(leftPoint.X - rightPoint.X)
+	yDistance := absInt(leftPoint.Y - rightPoint.Y)
+	slope := float64(yDistance) / float64(xDistance)
+	slopeSign := 1
+	if rightPoint.Y < leftPoint.Y {
+		slopeSign = -1
+	}
+
+	targetYCoordinate := float64(leftPoint.Y)
+	currentYCoordinate := leftPoint.Y
+	for i := leftPoint.X; i < rightPoint.X; i++ {
+		points = append(points, image.Pt(i, currentYCoordinate))
+		targetYCoordinate += (slope * float64(slopeSign))
+		for currentYCoordinate != int(targetYCoordinate) {
+			points = append(points, image.Pt(i, currentYCoordinate))
+			currentYCoordinate += slopeSign
+		}
+	}
+
+	return points
+}
+
 // Plot takes a 2d array of data points, with each inner
 // array being a separate line to graph on the Canvas
 func (c *Canvas) Plot(data [][]float64) string {
@@ -202,13 +245,19 @@ func (c *Canvas) Plot(data [][]float64) string {
 	//   - maxX = graph width
 	//   - maxY = graph height
 	// will refer to char coordinates as row/col and pixel coordinates as x/y
-	_, maxDataPoint := GetMinMaxFloat64From2dSlice(data)
+	minDataPoint, maxDataPoint := GetMinMaxFloat64From2dSlice(data)
 	ex := fmt.Sprintf("%.2f ┤ ", maxDataPoint)
-	yaxisWidth := len(ex)
+	yaxisWidth := len(ex) - 2
 	fmt.Printf("'%s', %d\n", ex, yaxisWidth)
+	fmt.Printf("%.2f, %.2f\n", minDataPoint, maxDataPoint)
 	graphWidth := (c.width - yaxisWidth) * 2
 	graphHeight := (c.height - 1) * 4
-	c.minX, c.minY, c.maxX, c.maxY = yaxisWidth, 1, graphWidth, graphHeight
+	fmt.Println(graphWidth, graphHeight)
+	c.minX, c.minY, c.maxX, c.maxY = yaxisWidth, 0, graphWidth, graphHeight
+	// verticalScale := (maxDataPoint - minDataPoint) / float64(graphHeight)
+	// for i := 0; i < c.maxY; i++ {
+	// 	c.SetText(0, i, fmt.Sprintf("%.2f ┤ ", float64(i) * verticalScale))
+	// }
 	for i, line := range data {
 		if len(line) >= graphWidth {
 			line = line[len(line)-graphWidth:]
@@ -216,17 +265,29 @@ func (c *Canvas) Plot(data [][]float64) string {
 		previousHeight := int((line[1] / maxDataPoint) * float64(graphHeight))
 		for j, val := range line[1:] {
 			height := int((val / maxDataPoint) * float64(graphHeight))
-			c.DrawLine(
+			// c.DrawLine(
+			// 	i,
+			// 	float64(c.minX+j),
+			// 	float64(c.maxY-previousHeight-1),
+			// 	float64(c.minX+j+1),
+			// 	float64(c.maxY-height-1),
+			// )
+			c.SetLine(
 				i,
-				float64(c.minX+j),
-				float64(c.maxY-previousHeight-1),
-				float64(c.minX+j+1),
-				float64(c.maxY-height-1),
+				image.Pt(
+					c.minX+j,
+					c.maxY-previousHeight-1,
+				),
+				image.Pt(
+					c.minX+j+1,
+					c.maxY-height-1,
+				),
 			)
 			previousHeight = height
 		}
 	}
-	return c.String()
+	fmt.Printf("%d %d %d %d\n", c.minX, c.minY, c.maxX, c.maxY)
+	return c.Frame(c.minX, c.minY, c.maxX, c.maxY, yaxisWidth)
 }
 
 // Convert x, y to cols, rows

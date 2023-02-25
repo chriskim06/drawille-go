@@ -55,3 +55,11 @@ func GetMinMaxFloat64From2dSlice(slices [][]float64) (float64, float64) {
 	}
 	return min, max
 }
+
+
+func absInt(x int) int {
+	if x >= 0 {
+		return x
+	}
+	return -x
+}
