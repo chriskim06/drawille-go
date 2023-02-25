@@ -21,63 +21,55 @@ type Cell struct {
 	color AnsiColor
 }
 
+func (c Cell) String() string {
+	return color(string(c.Rune), c.color)
+}
+
 // Canvas is a plot of braille characters
 type Canvas struct {
-	LineEnding string
 	LineColors []AnsiColor
-
-	width, height int
-	minX, minY    int
-	maxX, maxY    int
+	LabelColor AnsiColor
+	AxisColor  AnsiColor
 
 	// a map of the entire braille grid
-	// the map is map[row][col] = cell
 	area   image.Rectangle
 	points map[image.Point]Cell
-	chars  map[int]map[int]Cell
 	labels []string
+	offset int
 }
 
 // Make a new canvas
 func NewCanvas(width, height int) Canvas {
 	c := Canvas{
-		LineEnding: "\n",
-		chars:      make(map[int]map[int]Cell),
-		width:      width,
-		height:     height,
-		area:       image.Rect(0, 0, width-1, height-1),
-		points:     make(map[image.Point]Cell),
-		labels:     []string{},
+		AxisColor: Default,
+		LabelColor: Default,
+		LineColors: []AnsiColor{},
+		area:   image.Rect(0, 0, width-1, height-1),
+		points: make(map[image.Point]Cell),
+		labels: []string{},
 	}
 	return c
 }
 
 func (c *Canvas) Plot(data [][]float64) string {
 	_, maxDataPoint := GetMinMaxFloat64From2dSlice(data)
-	ex := fmt.Sprintf("%.2f", maxDataPoint)
-	yaxisWidth := len(ex) - 2
-	graphWidth := (c.width - yaxisWidth) * 2
-	graphHeight := (c.height - 1) * 4
+	lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
+	c.offset = lenMaxDataPoint + 3
 	verticalScale := maxDataPoint / float64(c.area.Dy())
-	c.minX, c.minY, c.maxX, c.maxY = yaxisWidth, 0, graphWidth, graphHeight
-	offset := 0
 	for i := 0; i < c.area.Dy(); i++ {
 		val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 		padding := ""
-		if len(val) < len(ex) {
-			padding = strings.Repeat(" ", len(ex)-len(val))
+		if len(val) < lenMaxDataPoint {
+			padding = strings.Repeat(" ", lenMaxDataPoint-len(val))
 		}
-		label := fmt.Sprintf("%s%s ┤ ", padding, val)
+		label := fmt.Sprintf("%s%s %s ", padding, color(val, c.LabelColor), color("┤", c.AxisColor))
 		c.labels = append(c.labels, label)
-		if len(label) > offset {
-			offset = len(label)
-		}
 	}
 	for i, line := range data {
 		previousHeight := int((line[1] / maxDataPoint) * float64(c.area.Dy()-1))
 		for j, val := range line[1:] {
 			height := int((val / maxDataPoint) * float64(c.area.Dy()-1))
-			startX := c.area.Min.X + offset
+			startX := c.area.Min.X + c.offset
 			c.SetLine(
 				image.Pt(
 					(startX+j)*2,
@@ -97,40 +89,27 @@ func (c *Canvas) Plot(data [][]float64) string {
 
 func (c Canvas) String() string {
 	var b strings.Builder
-	max := 0
+	// max := 0
 	cells := c.GetCells()
 	for row := c.area.Dy() - 1; row >= 0; row-- {
 		label := c.labels[row]
 		b.WriteString(label)
-		for col := len(label); col < c.area.Dx(); col++ {
-			cell, ok := cells[image.Pt(col, row)]
-			if !ok {
-				b.WriteRune(' ')
-				continue
+		for col := c.offset; col < c.area.Dx(); col++ {
+			r := " "
+			if cell, ok := cells[image.Pt(col, row)]; ok {
+				r = cell.String()
 			}
-			b.WriteRune(cell.Rune)
-			// b.WriteString(string(rune(cell.Rune)))
+			b.WriteString(r)
 		}
 		b.WriteRune('\n')
-		if len(label) > max {
-			max = len(label)
-		}
 	}
-	// figure this part out
-	b.WriteString(strings.Repeat(" ", max-4))
-	b.WriteRune('╰')
-	b.WriteString(strings.Repeat("─", c.area.Dx()-max-1+4))
-	b.WriteRune('\n')
-	return b.String()
-}
 
-func (c *Canvas) SetText(x, y int, text string) {
-	for i, char := range text {
-		c.points[image.Pt(x, y+i)] = Cell{
-			Rune:  char - BRAILLE_OFFSET,
-			color: Default,
-		}
-	}
+	// this is so that the x-axis can start at the y-axis line
+	offset := c.offset - 2
+	b.WriteString(strings.Repeat(" ", offset))
+	b.WriteString(color(string('╰'), c.AxisColor))
+	b.WriteString(color(strings.Repeat("─", c.area.Dx()-offset), c.AxisColor))
+	return b.String()
 }
 
 func (c *Canvas) SetPoint(p image.Point, color AnsiColor) {

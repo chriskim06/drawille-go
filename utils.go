@@ -1,6 +1,9 @@
 package drawille
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // dots:
 //    8x8 cells, 4x2 chars
@@ -62,4 +65,8 @@ func absInt(x int) int {
 		return x
 	}
 	return -x
+}
+
+func color(s string, c AnsiColor) string {
+	return fmt.Sprintf("%s%s%s", c.String(), s, Default)
 }

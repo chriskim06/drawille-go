@@ -13,6 +13,7 @@ func main() {
 		drawille.Red,
 		drawille.RoyalBlue,
 	}
+	s.AxisColor = drawille.Green
 	// for x := 0; x < (1800); x = x + 1 {
 	// 	y := int(math.Sin((math.Pi/180)*float64(x))*10 + 0.5)
 	// 	s.Set(x/10, y, 0)
