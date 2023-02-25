@@ -15,7 +15,7 @@ import "math"
 //    |3 6|3 6|3 6|3 6|
 //    |7 8|7 8|7 8|7 8|
 //    `````````````````
-
+/*
 var pixel_map = [4][2]int{
 	{0x1, 0x8},
 	{0x2, 0x10},
@@ -40,6 +40,7 @@ func getPixel(y, x int) int {
 	}
 	return pixel_map[cy][cx]
 }
+*/
 
 func GetMinMaxFloat64From2dSlice(slices [][]float64) (float64, float64) {
 	min, max := math.Inf(1), math.Inf(-1)
@@ -55,7 +56,6 @@ func GetMinMaxFloat64From2dSlice(slices [][]float64) (float64, float64) {
 	}
 	return min, max
 }
-
 
 func absInt(x int) int {
 	if x >= 0 {

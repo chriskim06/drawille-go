@@ -1,5 +1,5 @@
 package drawille
-
+/*
 import (
 	"fmt"
 	"image"
@@ -178,43 +178,6 @@ func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
 	}
 }
 
-func (c *Canvas) SetLine(lineNum int, p0, p1 image.Point) {
-	for _, p := range line(p0, p1) {
-		x, y := getPos(p.X, p.Y)
-		c.Set(lineNum, x, y)
-	}
-}
-
-func line(p0, p1 image.Point) []image.Point {
-	points := []image.Point{}
-
-	leftPoint, rightPoint := p0, p1
-	if leftPoint.X > rightPoint.X {
-		leftPoint, rightPoint = rightPoint, leftPoint
-	}
-
-	xDistance := absInt(leftPoint.X - rightPoint.X)
-	yDistance := absInt(leftPoint.Y - rightPoint.Y)
-	slope := float64(yDistance) / float64(xDistance)
-	slopeSign := 1
-	if rightPoint.Y < leftPoint.Y {
-		slopeSign = -1
-	}
-
-	targetYCoordinate := float64(leftPoint.Y)
-	currentYCoordinate := leftPoint.Y
-	for i := leftPoint.X; i < rightPoint.X; i++ {
-		points = append(points, image.Pt(i, currentYCoordinate))
-		targetYCoordinate += (slope * float64(slopeSign))
-		for currentYCoordinate != int(targetYCoordinate) {
-			points = append(points, image.Pt(i, currentYCoordinate))
-			currentYCoordinate += slopeSign
-		}
-	}
-
-	return points
-}
-
 // Plot takes a 2d array of data points, with each inner
 // array being a separate line to graph on the Canvas
 func (c *Canvas) Plot(data [][]float64) string {
@@ -298,3 +261,4 @@ func getPos(x, y int) (int, int) {
 func round(x float64) int {
 	return int(x + 0.5)
 }
+*/
