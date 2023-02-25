@@ -5,51 +5,6 @@ import (
 	"strings"
 )
 
-var pixel_map = [4][2]int{
-	{0x1, 0x8},
-	{0x2, 0x10},
-	{0x4, 0x20},
-	{0x40, 0x80},
-}
-
-// Braille chars start at 0x2800
-var braille_char_offset = 0x2800
-
-func getPixel(y, x int) int {
-	var cy, cx int
-	if y >= 0 {
-		cy = y % 4
-	} else {
-		cy = 3 + ((y + 1) % 4)
-	}
-	if x >= 0 {
-		cx = x % 2
-	} else {
-		cx = 1 + ((x + 1) % 2)
-	}
-	return pixel_map[cy][cx]
-}
-
-type Cell struct {
-	val   int
-	color AnsiColor
-}
-
-type Canvas struct {
-	LineEnding string
-	LineColors []AnsiColor
-
-	// a map of the entire braille grid
-	chars map[int]map[int]Cell
-}
-
-// Make a new canvas
-func NewCanvas() Canvas {
-	c := Canvas{LineEnding: "\n"}
-	c.Clear()
-	return c
-}
-
 // Clear all pixels
 func (c *Canvas) Clear() {
 	c.chars = make(map[int]map[int]Cell)
@@ -140,34 +95,16 @@ func (c *Canvas) Toggle(lineNum, x, y int) {
 
 // Set text to the given coordinates
 func (c *Canvas) SetText(x, y int, text string) {
-	x, y = x/2, y/4
-	if m := c.chars[y]; m == nil {
+	px, py := x/2, y/4
+	if m := c.chars[py]; m == nil {
 		c.chars[y] = make(map[int]Cell)
 	}
 	for i, char := range text {
-		c.chars[y][x+i] = Cell{
+		c.chars[py][px+i] = Cell{
 			val:   int(char) - braille_char_offset,
 			color: Default,
 		}
 	}
-}
-
-// Get pixel at the given coordinates
-func (c Canvas) Get(x, y int) bool {
-	dot_index := pixel_map[y%4][x%2] //3,3 - 1,3
-	x, y = x/2, y/4
-	char := c.chars[y][x].val
-	return (char & dot_index) != 0
-}
-
-// Get character at the given screen coordinates
-func (c Canvas) GetScreenCharacter(x, y int) rune {
-	return rune(c.chars[y][x].val + braille_char_offset)
-}
-
-// Get character for the given pixel
-func (c Canvas) GetCharacter(x, y int) rune {
-	return c.GetScreenCharacter(x/4, y/4)
 }
 
 // Retrieve the rows from a given view
@@ -206,7 +143,8 @@ func (c Canvas) Frame(minX, minY, maxX, maxY int) string {
 }
 
 func (c Canvas) String() string {
-	return c.Frame(c.MinX(), c.MinY(), c.MaxX(), c.MaxY())
+	// need to be able to deal with setting a fixed canvas height/width
+	return c.Frame(c.minX, c.minY, c.maxX, c.maxY)
 }
 
 func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
@@ -236,6 +174,23 @@ func (c *Canvas) DrawLine(lineNum int, x1, y1, x2, y2 float64) {
 		}
 		c.Toggle(lineNum, round(x), round(y))
 	}
+}
+
+// Plot takes a 2d array of data points, with each inner
+// array being a separate line to graph on the Canvas "┤"
+func (c *Canvas) Plot(data [][]float64) string {
+	// need to get the largest number in the data set to calculate
+	// the offset needed for the y-axis
+	// need to correctly print y-axis labels based on height and data
+	//   for i := 0; i < c.height
+	//     label val should be i * (abs(ymax-ymin) / c.height) + ymin
+	//       - so if our data has max/min values of 30/10 and canvas
+	//         height is set to 10 then the label values going up
+	//         would be 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30
+	//       - y-axis labels should also include " ┤ " so that when
+	//         they stack on top of each other it creates the axis
+	maxDataPoint := GetMaxFloat64From2dSlice(data)
+	return c.String()
 }
 
 // Convert x, y to cols, rows
