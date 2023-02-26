@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/chriskim06/drawille-go"
 )
+
+var t = time.Now()
 
 func main() {
 	s := drawille.NewCanvas(100, 25)
@@ -12,34 +15,48 @@ func main() {
 		drawille.Red,
 		drawille.RoyalBlue,
 	}
+	s.LabelColor = drawille.Purple
 	s.AxisColor = drawille.SeaGreen
 
+	i := 0
+	labels := []string{}
 	data := [][]float64{{}, {}}
 	for x := 0; x < 16; x++ {
 		data[0] = append(data[0], 150)
 		data[1] = append(data[1], 25)
+		update(i, &labels)
+		i++
 	}
 	for x := 0; x < 20; x++ {
 		data[0] = append(data[0], 256)
 		data[1] = append(data[1], 40)
+		update(i, &labels)
+		i++
 	}
 	for x := 0; x < 16; x++ {
 		data[0] = append(data[0], 140)
 		data[1] = append(data[1], 17)
+		update(i, &labels)
+		i++
 	}
 	for x := 0; x < 22; x++ {
 		data[0] = append(data[0], 256)
 		data[1] = append(data[1], 17)
+		update(i, &labels)
+		i++
 	}
-	for x := 0; x < 22; x++ {
+	for x := 0; x < 17; x++ {
 		data[0] = append(data[0], 355)
 		data[1] = append(data[1], 17)
+		update(i, &labels)
+		i++
 	}
-	fmt.Println(s.Plot(data, 0, 90))
-	// fmt.Println(s.Plot(data))
-	// for x := 0; x < 26; x++ {
-	// 	data[0] = append(data[0], 355)
-	// 	data[1] = append(data[1], 17)
-	// }
-	// fmt.Println(s.Plot(data, 0, 91))
+	s.HorizontalLabels = labels
+	fmt.Println(s.Plot(data))
+}
+
+func update(i int, labels *[]string) {
+	ti := t.Add(time.Duration(i) * time.Second)
+	t = ti
+	*labels = append(*labels, fmt.Sprintf("%02d:%02d:%02d", ti.Hour(), ti.Minute(), ti.Second()))
 }

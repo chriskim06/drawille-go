@@ -3,7 +3,6 @@ package drawille
 import (
 	"fmt"
 	"image"
-	"math"
 	"strings"
 )
 
@@ -37,6 +36,9 @@ type Canvas struct {
 	AxisColor  Color
 	ShowAxis   bool
 
+	// a list of labels the canvas will print underneath the x-axis
+	HorizontalLabels []string
+
 	// the bounds of the canvas
 	area image.Rectangle
 
@@ -68,14 +70,13 @@ func (c *Canvas) clear() {
 
 // Plot takes a list of data points to graph
 // each inner slice represents a different line
-func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
+func (c *Canvas) Plot(data [][]float64) string {
 	if len(data) == 0 {
 		return ""
 	}
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
 	graphHeight := c.area.Dy()
-	xlabels := bounds
 
 	// setup y-axis labels
 	if c.ShowAxis {
@@ -85,7 +86,7 @@ func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
 			if len(val) < lenMaxDataPoint {
-				padStr = padding(lenMaxDataPoint-len(val))
+				padStr = padding(lenMaxDataPoint - len(val))
 			}
 			c.labels = append(c.labels, fmt.Sprintf(
 				"%s%s %s ",
@@ -96,7 +97,7 @@ func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
 		}
 		c.offset = lenMaxDataPoint + 3 // y-axis plus spaces around it
 		graphHeight--
-		if len(xlabels) == 2 {
+		if len(c.HorizontalLabels) != 0 {
 			graphHeight--
 		}
 	}
@@ -107,11 +108,8 @@ func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
 		if len(line) == 0 {
 			continue
 		} else if len(line) > graphWidth {
-			start := len(line)-graphWidth
+			start := len(line) - graphWidth
 			line = line[start:]
-			if len(xlabels) == 2 && xlabels[0] < float64(start) {
-				xlabels[0] += float64(start)
-			}
 		}
 		previousHeight := int((line[0] / maxDataPoint) * float64(graphHeight-1))
 		for j, val := range line {
@@ -130,17 +128,17 @@ func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
 			previousHeight = height
 		}
 	}
-	return c.string(xlabels)
+	return c.string()
 }
 
-func (c Canvas) string(bounds []float64) string {
+func (c Canvas) string() string {
 	var b strings.Builder
 	cells := c.getCells()
 
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.area.Dy(); row++ {
 		if c.ShowAxis {
-			b.WriteString(c.labels[c.area.Dy()-1-row])
+			b.WriteString(wrap(c.labels[c.area.Dy()-1-row], c.LabelColor))
 		}
 		for col := c.offset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
@@ -156,33 +154,44 @@ func (c Canvas) string(bounds []float64) string {
 		// start at the y-axis line
 		xOffset := c.offset - 2
 		b.WriteString(padding(xOffset))
-		if len(bounds) != 2 {
+
+		// no labels for the x-axis so just draw a line
+		// or caller didnt properly update the x-axis labels
+		graphWidth := c.area.Dx() - c.offset
+		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > graphWidth {
 			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.area.Dx()-xOffset-1)), c.AxisColor))
 			return b.String()
 		}
 
-		boundsDistance := math.Abs(bounds[1] - bounds[0])
-		labelWidth := len(fmt.Sprintf("%.2f", boundsDistance)) + 2
-		graphWidth := c.area.Dx() - c.offset
-		numLabels := graphWidth / labelWidth
-		remaining := graphWidth % labelWidth
-		scale := (boundsDistance - float64(remaining)) / float64(numLabels)
-		xaxis := fmt.Sprintf(
-			"╰%s%s─",
-			strings.Repeat(fmt.Sprintf("┬%s", strings.Repeat("─", labelWidth-1)), numLabels),
-			strings.Repeat("─", remaining),
-		)
-		b.WriteString(wrap(xaxis, c.AxisColor))
-		var labelStr strings.Builder
-		labelStr.WriteString(padding(c.offset-1))
-		for i := 0; i < numLabels; i++ {
-			l := fmt.Sprintf("%.2f", scale*float64(i) + bounds[0])
-			if len(l) < labelWidth {
-				l += padding(labelWidth-len(l))
+		var axisStr, labelStr strings.Builder
+		axisStr.WriteString("╰─")
+		labelStr.WriteString(padding(c.offset)) // y-axis line plus the padding
+		pos := 0
+		remaining := graphWidth
+		for remaining > 0 {
+			labelToAdd := c.HorizontalLabels[pos]
+			if len(labelToAdd)+1 > remaining {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
 			}
-			labelStr.WriteString(l)
+			labelStr.WriteString(wrap("└", c.AxisColor) + wrap(labelToAdd, c.LabelColor))
+			axisStr.WriteString("┬" + strings.Repeat("─", len(labelToAdd)))
+			remaining -= len(labelToAdd)+1
+			if remaining < 2 {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
+			}
+			labelStr.WriteString("  ")
+			remaining -= 2
+			pos += len(labelToAdd) + 3
+			if pos >= len(c.HorizontalLabels) {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
+			}
+			axisStr.WriteString("──")
 		}
-		b.WriteRune('\n')
+
+		b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
 		b.WriteString(labelStr.String())
 	}
 	return b.String()
