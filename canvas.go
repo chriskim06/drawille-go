@@ -34,6 +34,7 @@ type Canvas struct {
 	LineColors []AnsiColor
 	LabelColor AnsiColor
 	AxisColor  AnsiColor
+	ShowAxis   bool
 
 	// the bounds of the canvas
 	area image.Rectangle
@@ -51,6 +52,7 @@ func NewCanvas(width, height int) Canvas {
 		AxisColor:  Default,
 		LabelColor: Default,
 		LineColors: []AnsiColor{},
+		ShowAxis:   true,
 		area:       image.Rect(0, 0, width-1, height-1),
 		points:     make(map[image.Point]Cell),
 		labels:     []string{},
@@ -68,23 +70,27 @@ func (c *Canvas) clear() {
 func (c *Canvas) Plot(data [][]float64) string {
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
-	lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
-	c.offset = lenMaxDataPoint + 3
-	verticalScale := maxDataPoint / float64(c.area.Dy())
 
 	// setup y-axis labels
-	for i := 0; i < c.area.Dy(); i++ {
-		val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
-		padding := ""
-		if len(val) < lenMaxDataPoint {
-			padding = strings.Repeat(" ", lenMaxDataPoint-len(val))
+	if c.ShowAxis {
+		verticalScale := maxDataPoint / float64(c.area.Dy())
+		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
+		for i := 0; i < c.area.Dy(); i++ {
+			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
+			padding := ""
+			if len(val) < lenMaxDataPoint {
+				padding = strings.Repeat(" ", lenMaxDataPoint-len(val))
+			}
+			c.labels = append(c.labels, fmt.Sprintf("%s%s %s ", padding, color(val, c.LabelColor), color("┤", c.AxisColor)))
 		}
-		label := fmt.Sprintf("%s%s %s ", padding, color(val, c.LabelColor), color("┤", c.AxisColor))
-		c.labels = append(c.labels, label)
+		c.offset = lenMaxDataPoint + 3 // y-axis plus spaces around it
 	}
 
 	// plot the data
 	for i, line := range data {
+		if len(line) > c.area.Dx()-c.offset {
+			line = line[c.area.Dx()-c.offset:]
+		}
 		previousHeight := int((line[1] / maxDataPoint) * float64(c.area.Dy()-1))
 		for j, val := range line[1:] {
 			height := int((val / maxDataPoint) * float64(c.area.Dy()-1))
@@ -109,24 +115,30 @@ func (c *Canvas) Plot(data [][]float64) string {
 func (c Canvas) string() string {
 	var b strings.Builder
 	cells := c.getCells()
-	for row := c.area.Dy() - 1; row >= 0; row-- {
-		label := c.labels[row]
-		b.WriteString(label)
+	for row := 0; row < c.area.Dy(); row++ {
+		if c.ShowAxis {
+			b.WriteString(c.labels[c.area.Dy()-1-row])
+		}
 		for col := c.offset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
 		}
-		b.WriteRune('\n')
+		if row < c.area.Dy()-1 {
+			b.WriteRune('\n')
+		}
 	}
 
-	// this is so that the x-axis can start at the y-axis line
-	offset := c.offset - 2
-	xaxis := fmt.Sprintf(
-		"%s%s%s",
-		strings.Repeat(" ", offset),
-		color(string('╰'), c.AxisColor),
-		color(strings.Repeat("─", c.area.Dx()-offset), c.AxisColor),
-	)
-	b.WriteString(xaxis)
+	if c.ShowAxis {
+		b.WriteRune('\n')
+		// this is so that the x-axis can start at the y-axis line
+		offset := c.offset - 2
+		xaxis := fmt.Sprintf(
+			"%s%s%s",
+			strings.Repeat(" ", offset),
+			color(string('╰'), c.AxisColor),
+			color(strings.Repeat("─", c.area.Dx()-offset), c.AxisColor),
+		)
+		b.WriteString(xaxis)
+	}
 	return b.String()
 }
 

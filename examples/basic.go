@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 
 	"github.com/chriskim06/drawille-go"
 )
@@ -13,7 +12,7 @@ func main() {
 		drawille.Red,
 		drawille.RoyalBlue,
 	}
-	s.AxisColor = drawille.Green
+	s.AxisColor = drawille.SeaGreen
 	// for x := 0; x < (1800); x = x + 1 {
 	// 	y := int(math.Sin((math.Pi/180)*float64(x))*10 + 0.5)
 	// 	s.Set(x/10, y, 0)
@@ -23,11 +22,32 @@ func main() {
 	// s.Clear()
 
 	data := [][]float64{{}, {}}
-	for x := 0; x < 1800; x = x + 10 {
-		data[0] = append(data[0], 10+math.Sin((math.Pi/180)*float64(x))*10+0.5)
-		data[1] = append(data[1], 10+math.Cos((math.Pi/180)*float64(x))*10+0.5)
+	for x := 0; x < 50; x++ {
+		data[0] = append(data[0], 256)
+		data[1] = append(data[1], 40)
+	}
+	for x := 0; x < 25; x++ {
+		data[0] = append(data[0], 256)
+		data[1] = append(data[1], 17)
+	}
+	for x := 0; x < 25; x++ {
+		data[0] = append(data[0], 256)
+		data[1] = append(data[1], 30)
 	}
 	fmt.Println(s.Plot(data))
+	// s.ShowAxis = false
+	// data = [][]float64{{}, {}}
+	// for x := 0; x < 2800; x = x + 10 {
+	// 	data[0] = append(data[0], (10+math.Sin((math.Pi/180)*float64(x))*10+0.5))
+	// 	data[1] = append(data[1], (10+math.Cos((math.Pi/180)*float64(x))*10+0.5))
+	// }
+	// fmt.Println(s.Plot(data))
+
+	// for x := 0; x < 400; x = x + 10 {
+	// 	data[0] = append(data[0], (17))
+	// 	data[1] = append(data[1], (15))
+	// }
+	// fmt.Println(s.Plot(data))
 
 	// s.Clear()
 
