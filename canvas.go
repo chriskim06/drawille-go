@@ -144,10 +144,12 @@ func (c Canvas) string() string {
 		// this is so that the x-axis can start at the y-axis line
 		offset := c.offset - 2
 		xaxis := fmt.Sprintf(
-			"%s%s%s",
+			// "%s%s%s",
+			"%s%s",
 			strings.Repeat(" ", offset),
-			wrap(string('╰'), c.AxisColor),
-			wrap(strings.Repeat("─", c.area.Dx()-offset), c.AxisColor),
+			wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.area.Dx()-offset-1), c.AxisColor),
+			// wrap(string('╰'), c.AxisColor),
+			// wrap(strings.Repeat("─", c.area.Dx()-offset-1), c.AxisColor),
 		)
 		b.WriteString(xaxis)
 	}
