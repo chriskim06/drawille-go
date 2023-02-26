@@ -31,10 +31,15 @@ func main() {
 		data[0] = append(data[0], 256)
 		data[1] = append(data[1], 17)
 	}
-	fmt.Println(s.Plot(data))
-	for x := 0; x < 24; x++ {
+	for x := 0; x < 22; x++ {
 		data[0] = append(data[0], 355)
 		data[1] = append(data[1], 17)
 	}
-	fmt.Println(s.Plot(data))
+	fmt.Println(s.Plot(data, 0, 90))
+	// fmt.Println(s.Plot(data))
+	// for x := 0; x < 26; x++ {
+	// 	data[0] = append(data[0], 355)
+	// 	data[1] = append(data[1], 17)
+	// }
+	// fmt.Println(s.Plot(data, 0, 91))
 }

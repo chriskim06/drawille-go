@@ -3,6 +3,7 @@ package drawille
 import (
 	"fmt"
 	"image"
+	"math"
 	"strings"
 )
 
@@ -53,7 +54,7 @@ func NewCanvas(width, height int) Canvas {
 		LabelColor: Default,
 		LineColors: []Color{},
 		ShowAxis:   true,
-		area:       image.Rect(0, 0, width-1, height-1),
+		area:       image.Rect(0, 0, width, height),
 		points:     make(map[image.Point]Cell),
 		labels:     []string{},
 	}
@@ -67,13 +68,14 @@ func (c *Canvas) clear() {
 
 // Plot takes a list of data points to graph
 // each inner slice represents a different line
-func (c *Canvas) Plot(data [][]float64) string {
+func (c *Canvas) Plot(data [][]float64, bounds ...float64) string {
 	if len(data) == 0 {
 		return ""
 	}
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
 	graphHeight := c.area.Dy()
+	xlabels := bounds
 
 	// setup y-axis labels
 	if c.ShowAxis {
@@ -81,19 +83,22 @@ func (c *Canvas) Plot(data [][]float64) string {
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
 		for i := 0; i < c.area.Dy(); i++ {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
-			padding := ""
+			padStr := ""
 			if len(val) < lenMaxDataPoint {
-				padding = strings.Repeat(" ", lenMaxDataPoint-len(val))
+				padStr = padding(lenMaxDataPoint-len(val))
 			}
 			c.labels = append(c.labels, fmt.Sprintf(
 				"%s%s %s ",
-				padding,
+				padStr,
 				wrap(val, c.LabelColor),
 				wrap("┤", c.AxisColor)),
 			)
 		}
 		c.offset = lenMaxDataPoint + 3 // y-axis plus spaces around it
 		graphHeight--
+		if len(xlabels) == 2 {
+			graphHeight--
+		}
 	}
 
 	// plot the data
@@ -102,7 +107,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 		if len(line) == 0 {
 			continue
 		} else if len(line) > graphWidth {
-			line = line[len(line)-graphWidth:]
+			start := len(line)-graphWidth
+			line = line[start:]
+			if len(xlabels) == 2 && xlabels[0] < float64(start) {
+				xlabels[0] += float64(start)
+			}
 		}
 		previousHeight := int((line[0] / maxDataPoint) * float64(graphHeight-1))
 		for j, val := range line {
@@ -121,12 +130,14 @@ func (c *Canvas) Plot(data [][]float64) string {
 			previousHeight = height
 		}
 	}
-	return c.string()
+	return c.string(xlabels)
 }
 
-func (c Canvas) string() string {
+func (c Canvas) string(bounds []float64) string {
 	var b strings.Builder
 	cells := c.getCells()
+
+	// go through each row of the canvas and print the lines
 	for row := 0; row < c.area.Dy(); row++ {
 		if c.ShowAxis {
 			b.WriteString(c.labels[c.area.Dy()-1-row])
@@ -141,17 +152,38 @@ func (c Canvas) string() string {
 
 	if c.ShowAxis {
 		b.WriteRune('\n')
-		// this is so that the x-axis can start at the y-axis line
-		offset := c.offset - 2
+
+		// start at the y-axis line
+		xOffset := c.offset - 2
+		b.WriteString(padding(xOffset))
+		if len(bounds) != 2 {
+			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.area.Dx()-xOffset-1)), c.AxisColor))
+			return b.String()
+		}
+
+		boundsDistance := math.Abs(bounds[1] - bounds[0])
+		labelWidth := len(fmt.Sprintf("%.2f", boundsDistance)) + 2
+		graphWidth := c.area.Dx() - c.offset
+		numLabels := graphWidth / labelWidth
+		remaining := graphWidth % labelWidth
+		scale := (boundsDistance - float64(remaining)) / float64(numLabels)
 		xaxis := fmt.Sprintf(
-			// "%s%s%s",
-			"%s%s",
-			strings.Repeat(" ", offset),
-			wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.area.Dx()-offset-1), c.AxisColor),
-			// wrap(string('╰'), c.AxisColor),
-			// wrap(strings.Repeat("─", c.area.Dx()-offset-1), c.AxisColor),
+			"╰%s%s─",
+			strings.Repeat(fmt.Sprintf("┬%s", strings.Repeat("─", labelWidth-1)), numLabels),
+			strings.Repeat("─", remaining),
 		)
-		b.WriteString(xaxis)
+		b.WriteString(wrap(xaxis, c.AxisColor))
+		var labelStr strings.Builder
+		labelStr.WriteString(padding(c.offset-1))
+		for i := 0; i < numLabels; i++ {
+			l := fmt.Sprintf("%.2f", scale*float64(i) + bounds[0])
+			if len(l) < labelWidth {
+				l += padding(labelWidth-len(l))
+			}
+			labelStr.WriteString(l)
+		}
+		b.WriteRune('\n')
+		b.WriteString(labelStr.String())
 	}
 	return b.String()
 }
