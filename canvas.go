@@ -28,7 +28,8 @@ type Canvas struct {
 	// a map of the entire braille grid
 	points map[image.Point]Cell
 
-	offset int
+	horizontalOffset int
+	verticalOffset   int
 }
 
 // NewCanvas creates a default canvas
@@ -71,15 +72,16 @@ func (c *Canvas) Plot(data [][]float64) string {
 				wrap("┤", c.AxisColor)),
 			)
 		}
-		c.offset = lenMaxDataPoint + 2 // y-axis plus spaces around it
+		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus spaces around it
 		graphHeight--
 		if len(c.HorizontalLabels) != 0 {
 			graphHeight--
 		}
 	}
+	c.verticalOffset = graphHeight
 
 	// plot the data
-	graphWidth := c.area.Dx() - c.offset
+	graphWidth := c.area.Dx() - c.horizontalOffset
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
@@ -92,11 +94,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 			height := int((val / maxDataPoint) * float64(graphHeight-1))
 			c.setLine(
 				image.Pt(
-					(c.offset+j)*2,
+					(c.horizontalOffset+j)*2,
 					(graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.offset+j+1)*2,
+					(c.horizontalOffset+j+1)*2,
 					(graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
@@ -117,7 +119,7 @@ func (c Canvas) String() string {
 		if c.ShowAxis {
 			b.WriteString(wrap(c.verticalLabels[c.area.Dy()-1-row], c.LabelColor))
 		}
-		for col := c.offset; col < c.area.Dx(); col++ {
+		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
 		}
 		if row < c.area.Dy()-1 {
@@ -129,12 +131,12 @@ func (c Canvas) String() string {
 		b.WriteRune('\n')
 
 		// start at the y-axis line
-		xOffset := c.offset - 1
+		xOffset := c.horizontalOffset - 1
 		b.WriteString(padding(xOffset))
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
-		graphWidth := c.area.Dx() - c.offset
+		graphWidth := c.area.Dx() - c.horizontalOffset
 		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > graphWidth {
 			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", graphWidth)), c.AxisColor))
 			return b.String()
@@ -142,7 +144,7 @@ func (c Canvas) String() string {
 
 		var axisStr, labelStr strings.Builder
 		axisStr.WriteString("╰─")
-		labelStr.WriteString(padding(c.offset + 1)) // y-axis line plus the padding
+		labelStr.WriteString(padding(c.horizontalOffset + 1)) // y-axis line plus the padding
 		pos := 0
 		remaining := graphWidth
 		for remaining > 0 {
@@ -172,6 +174,19 @@ func (c Canvas) String() string {
 		b.WriteString(labelStr.String())
 	}
 	return b.String()
+}
+
+// GetSize returns the total canvas width and height, including
+// labels, axes, padding, etc.
+func (c Canvas) GetSize() (int, int) {
+	return c.area.Dx(), c.area.Dy()
+}
+
+// GetPlotSize returns the width and height of the area of the
+// rectangle that can contain plot data points
+func (c Canvas) GetPlotSize() (int, int) {
+	width, height := c.GetSize()
+	return width - c.horizontalOffset, height - c.verticalOffset
 }
 
 func (c *Canvas) clear() {
