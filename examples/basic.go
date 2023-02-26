@@ -8,33 +8,47 @@ import (
 
 func main() {
 	s := drawille.NewCanvas(50, 25)
-	s.LineColors = []drawille.AnsiColor{
+	s.LineColors = []drawille.Color{
 		drawille.Red,
 		drawille.RoyalBlue,
 	}
 	s.AxisColor = drawille.SeaGreen
-	// for x := 0; x < (1800); x = x + 1 {
-	// 	y := int(math.Sin((math.Pi/180)*float64(x))*10 + 0.5)
-	// 	s.Set(x/10, y, 0)
-	// }
-	// fmt.Print(s)
 
-	// s.Clear()
-
+	// graph width here is 50-9=41
 	data := [][]float64{{}, {}}
-	for x := 0; x < 50; x++ {
+	fmt.Println(s.Plot(data))
+	for x := 0; x < 8; x++ {
+		data[0] = append(data[0], 150)
+		data[1] = append(data[1], 25)
+	}
+	for x := 0; x < 10; x++ {
 		data[0] = append(data[0], 256)
 		data[1] = append(data[1], 40)
 	}
-	for x := 0; x < 25; x++ {
-		data[0] = append(data[0], 256)
+	for x := 0; x < 8; x++ {
+		data[0] = append(data[0], 140)
 		data[1] = append(data[1], 17)
 	}
-	for x := 0; x < 25; x++ {
-		data[0] = append(data[0], 256)
-		data[1] = append(data[1], 30)
+	for x := 0; x < 11; x++ {
+		data[0] = append(data[0], 140)
+		data[1] = append(data[1], 17)
 	}
 	fmt.Println(s.Plot(data))
+	for x := 0; x < 4; x++ {
+		data[0] = append(data[0], 140)
+		data[1] = append(data[1], 17)
+	}
+	fmt.Println(s.Plot(data))
+	// for x := 0; x < 3; x++ {
+	// 	data[0] = append(data[0], 140)
+	// 	data[1] = append(data[1], 17)
+	// }
+	// fmt.Println(s.Plot(data))
+	// for x := 0; x < 25; x++ {
+	// 	data[0] = append(data[0], 256)
+	// 	data[1] = append(data[1], 30)
+	// }
+	// fmt.Println(s.Plot(data))
 	// s.ShowAxis = false
 	// data = [][]float64{{}, {}}
 	// for x := 0; x < 2800; x = x + 10 {

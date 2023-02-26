@@ -17,8 +17,11 @@ func getMaxFloat64From2dSlice(slices [][]float64) float64 {
 	return max
 }
 
-func color(s string, c AnsiColor) string {
-	return fmt.Sprintf("%s%s%s", c.String(), s, Default)
+func wrap(s string, c Color) string {
+	if c == Default {
+		return s
+	}
+	return fmt.Sprintf("%s%s%s", c, s, reset)
 }
 
 func line(p0, p1 image.Point) []image.Point {
