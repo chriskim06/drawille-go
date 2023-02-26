@@ -176,6 +176,11 @@ func (c Canvas) String() string {
 	return b.String()
 }
 
+// SetSize changes the size of the Canvas dimensions
+func (c *Canvas) SetSize(width, height int) {
+	c.area = image.Rect(0, 0, width, height)
+}
+
 // GetSize returns the total canvas width and height, including
 // labels, axes, padding, etc.
 func (c Canvas) GetSize() (int, int) {
