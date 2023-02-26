@@ -45,18 +45,10 @@ func NewCanvas(width, height int) Canvas {
 	return c
 }
 
-// Plot is a convenience method to set the Canvas
-// and return the string representation of it
+// Plot sets the Canvas and return the string representation of it
 func (c *Canvas) Plot(data [][]float64) string {
-	c.SetData(data)
-	return c.String()
-}
-
-// SetData takes a list of data points to graph
-// and sets them in the Canvas
-func (c *Canvas) SetData(data [][]float64) {
 	if len(data) == 0 {
-		return
+		return ""
 	}
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
@@ -112,6 +104,7 @@ func (c *Canvas) SetData(data [][]float64) {
 			previousHeight = height
 		}
 	}
+	return c.String()
 }
 
 // String allows the Canvas to implement the Stringer interface
