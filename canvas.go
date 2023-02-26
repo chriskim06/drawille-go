@@ -6,38 +6,21 @@ import (
 	"strings"
 )
 
-const BRAILLE_OFFSET = '\u2800'
-
-var BRAILLE = [4][2]rune{
-	{'\u0001', '\u0008'},
-	{'\u0002', '\u0010'},
-	{'\u0004', '\u0020'},
-	{'\u0040', '\u0080'},
-}
-
-// Cell represents the braille character at some coordinate in the canvas
-type Cell struct {
-	Rune  rune
-	color Color
-}
-
-// String returns the cell's rune wrapped in the color escape strings
-func (c Cell) String() string {
-	if c.Rune == 0 {
-		return wrap(" ", c.color)
-	}
-	return wrap(string(c.Rune), c.color)
-}
-
 // Canvas is a plot of braille characters
 type Canvas struct {
+	// various settings accessible outside this object
 	LineColors []Color
 	LabelColor Color
 	AxisColor  Color
 	ShowAxis   bool
 
-	// a list of labels the canvas will print underneath the x-axis
+	// a list of labels the canvas will print for the x and y axis
+	// horizontal labels must be provided by the caller. too lazy
+	// to come up with a good way to print stuff so offloading some
+	// of that work to the user. when the horizontal labels arent
+	// provided an empty line is printed
 	HorizontalLabels []string
+	verticalLabels   []string
 
 	// the bounds of the canvas
 	area image.Rectangle
@@ -45,34 +28,35 @@ type Canvas struct {
 	// a map of the entire braille grid
 	points map[image.Point]Cell
 
-	labels []string
 	offset int
 }
 
-// Make a new canvas
+// NewCanvas creates a default canvas
 func NewCanvas(width, height int) Canvas {
 	c := Canvas{
-		AxisColor:  Default,
-		LabelColor: Default,
-		LineColors: []Color{},
-		ShowAxis:   true,
-		area:       image.Rect(0, 0, width, height),
-		points:     make(map[image.Point]Cell),
-		labels:     []string{},
+		AxisColor:      Default,
+		LabelColor:     Default,
+		LineColors:     []Color{},
+		ShowAxis:       true,
+		area:           image.Rect(0, 0, width, height),
+		points:         make(map[image.Point]Cell),
+		verticalLabels: []string{},
 	}
 	return c
 }
 
-func (c *Canvas) clear() {
-	c.points = make(map[image.Point]Cell)
-	c.labels = []string{}
+// Plot is a convenience method to set the Canvas
+// and return the string representation of it
+func (c *Canvas) Plot(data [][]float64) string {
+	c.SetData(data)
+	return c.String()
 }
 
-// Plot takes a list of data points to graph
-// each inner slice represents a different line
-func (c *Canvas) Plot(data [][]float64) string {
+// SetData takes a list of data points to graph
+// and sets them in the Canvas
+func (c *Canvas) SetData(data [][]float64) {
 	if len(data) == 0 {
-		return ""
+		return
 	}
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
@@ -88,14 +72,14 @@ func (c *Canvas) Plot(data [][]float64) string {
 			if len(val) < lenMaxDataPoint {
 				padStr = padding(lenMaxDataPoint - len(val))
 			}
-			c.labels = append(c.labels, fmt.Sprintf(
-				"%s%s %s ",
+			c.verticalLabels = append(c.verticalLabels, fmt.Sprintf(
+				"%s%s %s",
 				padStr,
 				wrap(val, c.LabelColor),
 				wrap("┤", c.AxisColor)),
 			)
 		}
-		c.offset = lenMaxDataPoint + 3 // y-axis plus spaces around it
+		c.offset = lenMaxDataPoint + 2 // y-axis plus spaces around it
 		graphHeight--
 		if len(c.HorizontalLabels) != 0 {
 			graphHeight--
@@ -128,17 +112,17 @@ func (c *Canvas) Plot(data [][]float64) string {
 			previousHeight = height
 		}
 	}
-	return c.string()
 }
 
-func (c Canvas) string() string {
+// String allows the Canvas to implement the Stringer interface
+func (c Canvas) String() string {
 	var b strings.Builder
 	cells := c.getCells()
 
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.area.Dy(); row++ {
 		if c.ShowAxis {
-			b.WriteString(wrap(c.labels[c.area.Dy()-1-row], c.LabelColor))
+			b.WriteString(wrap(c.verticalLabels[c.area.Dy()-1-row], c.LabelColor))
 		}
 		for col := c.offset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
@@ -152,20 +136,20 @@ func (c Canvas) string() string {
 		b.WriteRune('\n')
 
 		// start at the y-axis line
-		xOffset := c.offset - 2
+		xOffset := c.offset - 1
 		b.WriteString(padding(xOffset))
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
 		graphWidth := c.area.Dx() - c.offset
 		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > graphWidth {
-			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.area.Dx()-xOffset-1)), c.AxisColor))
+			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", graphWidth)), c.AxisColor))
 			return b.String()
 		}
 
 		var axisStr, labelStr strings.Builder
 		axisStr.WriteString("╰─")
-		labelStr.WriteString(padding(c.offset)) // y-axis line plus the padding
+		labelStr.WriteString(padding(c.offset + 1)) // y-axis line plus the padding
 		pos := 0
 		remaining := graphWidth
 		for remaining > 0 {
@@ -176,7 +160,7 @@ func (c Canvas) string() string {
 			}
 			labelStr.WriteString(wrap("└", c.AxisColor) + wrap(labelToAdd, c.LabelColor))
 			axisStr.WriteString("┬" + strings.Repeat("─", len(labelToAdd)))
-			remaining -= len(labelToAdd)+1
+			remaining -= len(labelToAdd) + 1
 			if remaining < 2 {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
@@ -195,6 +179,11 @@ func (c Canvas) string() string {
 		b.WriteString(labelStr.String())
 	}
 	return b.String()
+}
+
+func (c *Canvas) clear() {
+	c.points = make(map[image.Point]Cell)
+	c.verticalLabels = []string{}
 }
 
 func (c *Canvas) setPoint(p image.Point, color Color) {
