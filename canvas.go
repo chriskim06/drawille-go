@@ -73,6 +73,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 	}
 	c.clear()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
+	graphHeight := c.area.Dy()
 
 	// setup y-axis labels
 	if c.ShowAxis {
@@ -92,6 +93,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 			)
 		}
 		c.offset = lenMaxDataPoint + 3 // y-axis plus spaces around it
+		graphHeight--
 	}
 
 	// plot the data
@@ -102,17 +104,17 @@ func (c *Canvas) Plot(data [][]float64) string {
 		} else if len(line) > graphWidth {
 			line = line[len(line)-graphWidth:]
 		}
-		previousHeight := int((line[0] / maxDataPoint) * float64(c.area.Dy()-1))
+		previousHeight := int((line[0] / maxDataPoint) * float64(graphHeight-1))
 		for j, val := range line {
-			height := int((val / maxDataPoint) * float64(c.area.Dy()-1))
+			height := int((val / maxDataPoint) * float64(graphHeight-1))
 			c.setLine(
 				image.Pt(
 					(c.offset+j)*2,
-					(c.area.Max.Y-previousHeight-1)*4,
+					(graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
 					(c.offset+j+1)*2,
-					(c.area.Max.Y-height-1)*4,
+					(graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
 			)
