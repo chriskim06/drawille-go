@@ -51,7 +51,7 @@ func main() {
 		update(i, &labels)
 		i++
 	}
-	s.HorizontalLabels = labels
+	//     s.HorizontalLabels = labels
 	fmt.Println(s.Plot(data))
 }
 

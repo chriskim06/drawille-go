@@ -127,7 +127,7 @@ func (c Canvas) String() string {
 		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
 		}
-		if row < c.area.Dy()-1 {
+		if row < c.graphHeight-1 {
 			b.WriteRune('\n')
 		}
 	}
