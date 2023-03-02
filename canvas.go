@@ -59,10 +59,10 @@ func (c *Canvas) Plot(data [][]float64) string {
 
 	// setup y-axis labels
 	if c.ShowAxis {
+		graphHeight--
 		verticalScale := maxDataPoint / float64(graphHeight-1)
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
-		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus spaces around it
-		graphHeight--
+		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus space before it
 		//         if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 		//             graphHeight--
 		//         }
@@ -134,12 +134,8 @@ func (c Canvas) String() string {
 
 	if c.ShowAxis {
 		b.WriteRune('\n')
-
-		// start at the y-axis line
-		xOffset := c.horizontalOffset - 1
-		b.WriteString(padding(xOffset))
+		b.WriteString(padding(c.horizontalOffset - 1))
 		b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
-		return b.String()
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
