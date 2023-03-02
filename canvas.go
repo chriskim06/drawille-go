@@ -41,7 +41,7 @@ func NewCanvas(width, height int) Canvas {
 		LabelColor:     Default,
 		LineColors:     []Color{},
 		ShowAxis:       true,
-		area:           image.Rect(0, 0, width, height),
+		area:           image.Rect(0, 0, width-1, height-1),
 		points:         make(map[image.Point]Cell),
 		verticalLabels: []string{},
 	}
@@ -54,19 +54,19 @@ func (c *Canvas) Plot(data [][]float64) string {
 		return ""
 	}
 	c.clear()
+	c.graphHeight = c.area.Dy()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
-	graphHeight := c.area.Dy()
 
 	// setup y-axis labels
 	if c.ShowAxis {
-		graphHeight--
-		verticalScale := maxDataPoint / float64(graphHeight-1)
+		c.graphHeight--
+		verticalScale := maxDataPoint / float64(c.graphHeight-1)
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
 		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus space before it
 		//         if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 		//             graphHeight--
 		//         }
-		for i := graphHeight - 1; i >= 0; i-- {
+		for i := c.graphHeight - 1; i >= 0; i-- {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
 			if len(val) < lenMaxDataPoint {
@@ -81,8 +81,6 @@ func (c *Canvas) Plot(data [][]float64) string {
 		}
 	}
 	c.graphWidth = c.area.Dx() - c.horizontalOffset
-	c.graphHeight = graphHeight
-	c.verticalOffset = graphHeight
 
 	// plot the data
 	for i, line := range data {
@@ -120,7 +118,7 @@ func (c Canvas) String() string {
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.graphHeight; row++ {
 		if c.ShowAxis {
-			b.WriteString(wrap(c.verticalLabels[row], c.LabelColor))
+			b.WriteString(c.verticalLabels[row])
 		}
 		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
