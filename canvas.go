@@ -57,9 +57,9 @@ func (c *Canvas) Plot(data [][]float64) string {
 
 	// setup y-axis labels
 	if c.ShowAxis {
-		verticalScale := maxDataPoint / float64(c.area.Dy())
+		verticalScale := maxDataPoint / float64(graphHeight-1)
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
-		for i := 0; i < c.area.Dy(); i++ {
+		for i := 0; i < graphHeight; i++ {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
 			if len(val) < lenMaxDataPoint {
@@ -74,7 +74,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 		}
 		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus spaces around it
 		graphHeight--
-		if len(c.HorizontalLabels) != 0 {
+		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 			graphHeight--
 		}
 	}

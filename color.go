@@ -150,7 +150,7 @@ var (
 )
 
 func (c Color) String() string {
-	if c == reset {
+	if c == reset || c == Default {
 		return "\x1b[0m"
 	}
 	return fmt.Sprintf("\x1b[38;5;%dm", c)
