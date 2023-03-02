@@ -41,7 +41,7 @@ func NewCanvas(width, height int) Canvas {
 		LabelColor:     Default,
 		LineColors:     []Color{},
 		ShowAxis:       true,
-		area:           image.Rect(0, 0, width-1, height-1),
+		area:           image.Rect(0, 0, width, height),
 		points:         make(map[image.Point]Cell),
 		verticalLabels: []string{},
 	}
