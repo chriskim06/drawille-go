@@ -25,6 +25,8 @@ type Canvas struct {
 	// the bounds of the canvas
 	area image.Rectangle
 
+	graphWidth, graphHeight int
+
 	// a map of the entire braille grid
 	points map[image.Point]Cell
 
@@ -78,28 +80,29 @@ func (c *Canvas) Plot(data [][]float64) string {
 			)
 		}
 	}
+	c.graphWidth = c.area.Dx() - c.horizontalOffset
+	c.graphHeight = graphHeight
 	c.verticalOffset = graphHeight
 
 	// plot the data
-	graphWidth := c.area.Dx() - c.horizontalOffset
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
-		} else if len(line) > graphWidth {
-			start := len(line) - graphWidth
+		} else if len(line) > c.graphWidth {
+			start := len(line) - c.graphWidth
 			line = line[start:]
 		}
-		previousHeight := int((line[0] / maxDataPoint) * float64(graphHeight-1))
+		previousHeight := int((line[0] / maxDataPoint) * float64(c.graphHeight-1))
 		for j, val := range line {
-			height := int((val / maxDataPoint) * float64(graphHeight-1))
+			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
 					(c.horizontalOffset+j)*2,
-					(graphHeight-previousHeight-1)*4,
+					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
 					(c.horizontalOffset+j+1)*2,
-					(graphHeight-height-1)*4,
+					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
 			)
@@ -117,7 +120,7 @@ func (c Canvas) String() string {
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.area.Dy(); row++ {
 		if c.ShowAxis {
-			b.WriteString(wrap(c.verticalLabels[c.area.Dy()-1-row], c.LabelColor))
+			b.WriteString(wrap(c.verticalLabels[c.graphHeight-1-row], c.LabelColor))
 		}
 		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
@@ -136,9 +139,8 @@ func (c Canvas) String() string {
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
-		graphWidth := c.area.Dx() - c.horizontalOffset
-		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > graphWidth {
-			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", graphWidth)), c.AxisColor))
+		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > c.graphWidth {
+			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
 			return b.String()
 		}
 
@@ -146,7 +148,7 @@ func (c Canvas) String() string {
 		axisStr.WriteString("╰─")
 		labelStr.WriteString(padding(c.horizontalOffset + 1)) // y-axis line plus the padding
 		pos := 0
-		remaining := graphWidth
+		remaining := c.graphWidth
 		for remaining > 0 {
 			labelToAdd := c.HorizontalLabels[pos]
 			if len(labelToAdd)+1 > remaining {
