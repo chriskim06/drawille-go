@@ -66,7 +66,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 		//         if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 		//             graphHeight--
 		//         }
-		for i := 0; i < graphHeight; i++ {
+		for i := graphHeight - 1; i >= 0; i-- {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
 			if len(val) < lenMaxDataPoint {
@@ -120,20 +120,18 @@ func (c Canvas) String() string {
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.graphHeight; row++ {
 		if c.ShowAxis {
-			if idx := len(c.verticalLabels) - 1 - row; idx >= 0 {
-				b.WriteString(wrap(c.verticalLabels[idx], c.LabelColor))
-			}
+			b.WriteString(wrap(c.verticalLabels[row], c.LabelColor))
 		}
 		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
 		}
 		if row < c.graphHeight-1 {
-			b.WriteRune('\n')
+			b.WriteString("\n")
 		}
 	}
 
 	if c.ShowAxis {
-		b.WriteRune('\n')
+		b.WriteString("\n")
 		b.WriteString(padding(c.horizontalOffset - 1))
 		b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
 

@@ -52,7 +52,7 @@ func main() {
 		i++
 	}
 	//     s.HorizontalLabels = labels
-	fmt.Println(s.Plot(data))
+	fmt.Print(s.Plot(data))
 }
 
 func update(i int, labels *[]string) {
