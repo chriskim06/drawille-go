@@ -118,9 +118,9 @@ func (c Canvas) String() string {
 	cells := c.getCells()
 
 	// go through each row of the canvas and print the lines
-	for row := 0; row < c.area.Dy(); row++ {
+	for row := 0; row < c.graphHeight; row++ {
 		if c.ShowAxis {
-			if idx := c.graphHeight - 1 - row; idx >= 0 {
+			if idx := len(c.verticalLabels) - 1 - row; idx >= 0 {
 				b.WriteString(wrap(c.verticalLabels[idx], c.LabelColor))
 			}
 		}
