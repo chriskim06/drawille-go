@@ -120,7 +120,9 @@ func (c Canvas) String() string {
 	// go through each row of the canvas and print the lines
 	for row := 0; row < c.area.Dy(); row++ {
 		if c.ShowAxis {
-			b.WriteString(wrap(c.verticalLabels[c.graphHeight-1-row], c.LabelColor))
+			if idx := c.graphHeight - 1 - row; idx >= 0 {
+				b.WriteString(wrap(c.verticalLabels[idx], c.LabelColor))
+			}
 		}
 		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
