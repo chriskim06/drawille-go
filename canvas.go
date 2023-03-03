@@ -110,7 +110,6 @@ func (c *Canvas) Plot(data [][]float64) string {
 	if c.NumDataPoints > 0 {
 		c.horizontalScale = float64(c.graphWidth) / float64(c.NumDataPoints)
 	}
-	fmt.Println(c.horizontalScale)
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
