@@ -49,6 +49,7 @@ type Canvas struct {
 	verticalOffset   int
 	horizontalScale  float64
 	verticalScale    float64
+	maxX             int
 }
 
 // NewCanvas creates a default canvas
@@ -135,6 +136,9 @@ func (c *Canvas) Plot(data [][]float64) string {
 				c.lineColor(i),
 			)
 			previousHeight = height
+			if int(float64(j+1)*c.horizontalScale) > c.maxX {
+				c.maxX = int(float64(j+1)*c.horizontalScale) / 2
+			}
 		}
 	}
 	return c.String()
@@ -174,6 +178,7 @@ func (c Canvas) String() string {
 		var axisStr, labelStr strings.Builder
 		axisStr.WriteString(fmt.Sprintf("%s╰", padding(c.horizontalOffset-1)))
 		labelStr.WriteString(padding(c.horizontalOffset)) // y-axis line plus the padding
+		xCoordinate := 0
 		pos := 0
 		remaining := c.graphWidth / 2
 		for remaining > 0 {
@@ -191,8 +196,9 @@ func (c Canvas) String() string {
 			}
 			labelStr.WriteString("  ")
 			remaining -= 2
+			xCoordinate += len(labelToAdd) + 3
 			pos += (len(labelToAdd) + 3) / int(c.horizontalScale)
-			if pos >= len(c.HorizontalLabels) {
+			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
