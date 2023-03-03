@@ -19,8 +19,8 @@ type Canvas struct {
 	// to come up with a good way to print stuff so offloading some
 	// of that work to the user. when the horizontal labels arent
 	// provided an empty line is printed
-	//     HorizontalLabels []string
-	verticalLabels []string
+	HorizontalLabels []string
+	verticalLabels   []string
 
 	// the bounds of the canvas
 	area image.Rectangle
@@ -60,12 +60,12 @@ func (c *Canvas) Plot(data [][]float64) string {
 	// setup y-axis labels
 	if c.ShowAxis {
 		c.graphHeight--
-		verticalScale := maxDataPoint / float64(c.graphHeight-1)
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
 		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus space before it
-		//         if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
-		//             graphHeight--
-		//         }
+		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
+			c.graphHeight--
+		}
+		verticalScale := maxDataPoint / float64(c.graphHeight-1)
 		for i := c.graphHeight - 1; i >= 0; i-- {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
@@ -130,46 +130,47 @@ func (c Canvas) String() string {
 
 	if c.ShowAxis {
 		b.WriteString("\n")
-		b.WriteString(padding(c.horizontalOffset - 1))
-		b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
+		//         b.WriteString(padding(c.horizontalOffset - 1))
+		//         b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
-		//         if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > c.graphWidth {
-		//             b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
-		//             return b.String()
-		//         }
+		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > c.graphWidth {
+			b.WriteString(padding(c.horizontalOffset - 1))
+			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
+			return b.String()
+		}
 
-		//         var axisStr, labelStr strings.Builder
-		//         axisStr.WriteString("╰─")
-		//         labelStr.WriteString(padding(c.horizontalOffset + 1)) // y-axis line plus the padding
-		//         pos := 0
-		//         remaining := c.graphWidth
-		//         for remaining > 0 {
-		//             labelToAdd := c.HorizontalLabels[pos]
-		//             if len(labelToAdd)+1 > remaining {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             labelStr.WriteString(wrap("└", c.AxisColor) + wrap(labelToAdd, c.LabelColor))
-		//             axisStr.WriteString("┬" + strings.Repeat("─", len(labelToAdd)))
-		//             remaining -= len(labelToAdd) + 1
-		//             if remaining < 2 {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             labelStr.WriteString("  ")
-		//             remaining -= 2
-		//             pos += len(labelToAdd) + 3
-		//             if pos >= len(c.HorizontalLabels) {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             axisStr.WriteString("──")
-		//         }
-		//
-		//         b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
-		//         b.WriteString(labelStr.String())
+		var axisStr, labelStr strings.Builder
+		axisStr.WriteString(fmt.Sprintf("%s╰", padding(c.horizontalOffset-1)))
+		labelStr.WriteString(padding(c.horizontalOffset)) // y-axis line plus the padding
+		pos := 0
+		remaining := c.graphWidth
+		for remaining > 0 {
+			labelToAdd := c.HorizontalLabels[pos]
+			if len(labelToAdd)+1 > remaining {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
+			}
+			labelStr.WriteString(wrap("└", c.AxisColor) + wrap(labelToAdd, c.LabelColor))
+			axisStr.WriteString("┬" + strings.Repeat("─", len(labelToAdd)))
+			remaining -= len(labelToAdd) + 1
+			if remaining < 2 {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
+			}
+			labelStr.WriteString("  ")
+			remaining -= 2
+			pos += len(labelToAdd) + 3
+			if pos >= len(c.HorizontalLabels) {
+				axisStr.WriteString(strings.Repeat("─", remaining))
+				break
+			}
+			axisStr.WriteString("──")
+		}
+
+		b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
+		b.WriteString(labelStr.String())
 	}
 	return b.String()
 }
