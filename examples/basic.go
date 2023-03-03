@@ -10,13 +10,14 @@ import (
 var t = time.Now()
 
 func main() {
-	s := drawille.NewCanvas(100, 25)
+	s := drawille.NewCanvas(103, 25)
 	s.LineColors = []drawille.Color{
 		drawille.Red,
 		drawille.RoyalBlue,
 	}
 	s.LabelColor = drawille.Purple
 	s.AxisColor = drawille.SeaGreen
+	s.NumDataPoints = 50
 
 	i := 0
 	labels := []string{}
@@ -33,25 +34,27 @@ func main() {
 		update(i, &labels)
 		i++
 	}
-	for x := 0; x < 64; x++ {
+	for x := 0; x < 14; x++ {
 		data[0] = append(data[0], 140)
 		data[1] = append(data[1], 17)
 		update(i, &labels)
 		i++
 	}
-	//     for x := 0; x < 22; x++ {
-	//         data[0] = append(data[0], 256)
-	//         data[1] = append(data[1], 17)
-	//         update(i, &labels)
-	//         i++
-	//     }
+	s.HorizontalLabels = labels
+	fmt.Print(s.Plot(data))
+	fmt.Println()
+	for x := 0; x < 22; x++ {
+		data[0] = append(data[0], 256)
+		data[1] = append(data[1], 17)
+		update(i, &labels)
+		i++
+	}
 	//     for x := 0; x < 18; x++ {
 	//         data[0] = append(data[0], 355)
 	//         data[1] = append(data[1], 17)
 	//         update(i, &labels)
 	//         i++
 	//     }
-	s.NumDataPoints = 100
 	s.HorizontalLabels = labels
 	fmt.Print(s.Plot(data))
 }

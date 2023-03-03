@@ -111,6 +111,9 @@ func (c *Canvas) Plot(data [][]float64) string {
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
+		} else if c.NumDataPoints > 0 && len(line) > c.NumDataPoints {
+			start := len(line) - c.NumDataPoints
+			line = line[start:]
 		} else if len(line) > c.graphWidth {
 			start := len(line) - c.graphWidth
 			line = line[start:]
@@ -120,11 +123,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
-					(c.horizontalOffset+int(float64(j)*horizontalScale))*2,
+					(c.horizontalOffset+int(float64(j)*horizontalScale)),
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.horizontalOffset+int(float64(j+1)*horizontalScale))*2,
+					(c.horizontalOffset+int(float64(j+1)*horizontalScale)),
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
