@@ -195,14 +195,20 @@ func (c Canvas) String() string {
 				break
 			}
 			labelStr.WriteString("  ")
+			axisStr.WriteString("──")
 			remaining -= 2
 			xCoordinate += len(labelToAdd) + 3
-			pos += (len(labelToAdd) + 3) / int(c.horizontalScale)
+			f := float64(len(labelToAdd)+3) / c.horizontalScale
+			if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
+				pos = i
+			} else {
+				pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
+			}
+			//             pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
 			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
-			axisStr.WriteString("──")
 		}
 
 		b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")

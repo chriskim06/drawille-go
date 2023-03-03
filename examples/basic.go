@@ -29,6 +29,7 @@ func main() {
 		i++
 	}
 	s.HorizontalLabels = labels
+	fmt.Println(labels)
 	fmt.Print(s.Plot(data))
 	fmt.Println()
 	for x := 0; x < 20; x++ {
@@ -66,7 +67,7 @@ func main() {
 }
 
 func update(i int, labels *[]string) {
-	ti := t.Add(time.Duration(i) * time.Second)
+	ti := t.Add(time.Second)
 	t = ti
 	*labels = append(*labels, fmt.Sprintf("%02d:%02d:%02d", ti.Hour(), ti.Minute(), ti.Second()))
 }
