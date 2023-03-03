@@ -41,14 +41,20 @@ func main() {
 		i++
 	}
 	s.HorizontalLabels = labels
+	fmt.Println(labels[0:18])
+	fmt.Println(data[0][0:18])
+	fmt.Println(data[1][0:18])
 	fmt.Print(s.Plot(data))
 	fmt.Println()
-	for x := 0; x < 22; x++ {
+	for x := 0; x < 7; x++ {
 		data[0] = append(data[0], 256)
 		data[1] = append(data[1], 17)
 		update(i, &labels)
 		i++
 	}
+	labels = labels[7:]
+	data[0] = data[0][7:]
+	data[1] = data[1][7:]
 	//     for x := 0; x < 18; x++ {
 	//         data[0] = append(data[0], 355)
 	//         data[1] = append(data[1], 17)
@@ -56,6 +62,9 @@ func main() {
 	//         i++
 	//     }
 	s.HorizontalLabels = labels
+	fmt.Println(labels[0:10])
+	fmt.Println(data[0][0:10])
+	fmt.Println(data[1][0:10])
 	fmt.Print(s.Plot(data))
 }
 

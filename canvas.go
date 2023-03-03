@@ -47,6 +47,8 @@ type Canvas struct {
 
 	horizontalOffset int
 	verticalOffset   int
+	horizontalScale  float64
+	verticalScale    float64
 }
 
 // NewCanvas creates a default canvas
@@ -104,10 +106,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 	c.graphWidth = (c.area.Dx() - c.horizontalOffset) * 2
 
 	// plot the data
-	horizontalScale := 1.0
+	c.horizontalScale = 1.0
 	if c.NumDataPoints > 0 {
-		horizontalScale = float64(c.graphWidth) / float64(c.NumDataPoints)
+		c.horizontalScale = float64(c.graphWidth) / float64(c.NumDataPoints)
 	}
+	fmt.Println(c.horizontalScale)
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
@@ -123,11 +126,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
-					(c.horizontalOffset+int(float64(j)*horizontalScale)),
+					(c.horizontalOffset+int(float64(j)*c.horizontalScale)),
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.horizontalOffset+int(float64(j+1)*horizontalScale)),
+					(c.horizontalOffset+int(float64(j+1)*c.horizontalScale)),
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
@@ -189,7 +192,7 @@ func (c Canvas) String() string {
 			}
 			labelStr.WriteString("  ")
 			remaining -= 2
-			pos += len(labelToAdd) + 3
+			pos += (len(labelToAdd) + 3) / int(c.horizontalScale)
 			if pos >= len(c.HorizontalLabels) {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
