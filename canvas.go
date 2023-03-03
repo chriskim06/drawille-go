@@ -101,12 +101,12 @@ func (c *Canvas) Plot(data [][]float64) string {
 			)
 		}
 	}
-	c.graphWidth = c.area.Dx() - c.horizontalOffset
+	c.graphWidth = (c.area.Dx() - c.horizontalOffset) * 2
 
 	// plot the data
 	horizontalScale := 1.0
 	if c.NumDataPoints > 0 {
-		horizontalScale = float64(c.graphWidth / c.NumDataPoints)
+		horizontalScale = float64(c.graphWidth) / float64(c.NumDataPoints)
 	}
 	for i, line := range data {
 		if len(line) == 0 {
@@ -170,7 +170,7 @@ func (c Canvas) String() string {
 		axisStr.WriteString(fmt.Sprintf("%s╰", padding(c.horizontalOffset-1)))
 		labelStr.WriteString(padding(c.horizontalOffset)) // y-axis line plus the padding
 		pos := 0
-		remaining := c.graphWidth
+		remaining := c.graphWidth / 2
 		for remaining > 0 {
 			labelToAdd := c.HorizontalLabels[pos]
 			if len(labelToAdd)+1 > remaining {
@@ -233,10 +233,7 @@ func (c *Canvas) setPoint(p image.Point, color Color) {
 
 func (c *Canvas) setLine(p0, p1 image.Point, color Color) {
 	for _, p := range line(p0, p1) {
-		if p.In(c.area) {
-			c.setPoint(p, color)
-		}
-		//         c.setPoint(p, color)
+		c.setPoint(p, color)
 	}
 }
 
