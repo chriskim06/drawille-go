@@ -22,6 +22,21 @@ type Canvas struct {
 	HorizontalLabels []string
 	verticalLabels   []string
 
+	// this value is used to determine the horizontal scale when
+	// graphing points in the plot. with braille characters, each
+	// cell represents 2 points along the x axis. so if the total
+	// graphable area in the canvas is 50 cells then we can plot
+	// 100 points of data. if we only want to plot 50 data points
+	// then the horizontal scale needs to be 2 in order to utilize
+	// the whole graphable area. since image uses ints for points
+	// the graphing gets a little weird. ex:
+	// graphable area = 88
+	// num of data points = 50
+	// horizontal scale = 88/50 = 1.76
+	// 0, 1.76, 3.52, 5.28, 7.04, 8.8, 10.56, 12.32, 14.08
+	// this would map points at 0,1,3,5,7,8,10,12,14
+	NumDataPoints int
+
 	// the bounds of the canvas
 	area image.Rectangle
 
@@ -56,6 +71,12 @@ func (c *Canvas) Plot(data [][]float64) string {
 	c.clear()
 	c.graphHeight = c.area.Dy()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
+	dataLen := 0
+	for _, line := range data {
+		if len(line) > dataLen {
+			dataLen = len(line)
+		}
+	}
 
 	// setup y-axis labels
 	if c.ShowAxis {
@@ -83,6 +104,10 @@ func (c *Canvas) Plot(data [][]float64) string {
 	c.graphWidth = c.area.Dx() - c.horizontalOffset
 
 	// plot the data
+	horizontalScale := 1.0
+	if c.NumDataPoints > 0 {
+		horizontalScale = float64(c.graphWidth / c.NumDataPoints)
+	}
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
@@ -95,11 +120,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
-					(c.horizontalOffset+j)*2,
+					(c.horizontalOffset+int(float64(j)*horizontalScale))*2,
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.horizontalOffset+j+1)*2,
+					(c.horizontalOffset+int(float64(j+1)*horizontalScale))*2,
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
@@ -208,7 +233,10 @@ func (c *Canvas) setPoint(p image.Point, color Color) {
 
 func (c *Canvas) setLine(p0, p1 image.Point, color Color) {
 	for _, p := range line(p0, p1) {
-		c.setPoint(p, color)
+		if p.In(c.area) {
+			c.setPoint(p, color)
+		}
+		//         c.setPoint(p, color)
 	}
 }
 
