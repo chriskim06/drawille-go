@@ -130,12 +130,12 @@ func (c *Canvas) Plot(data [][]float64) string {
 			c.setLine(
 				image.Pt(
 					//                     (c.horizontalOffset+int(float64(j)*c.horizontalScale)),
-					x0,
+					c.horizontalOffset+x0,
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
 					//                     (c.horizontalOffset+int(float64(j+1)*c.horizontalScale)),
-					x1,
+					c.horizontalOffset+x1,
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
@@ -197,6 +197,9 @@ func (c Canvas) String() string {
 		// 11. this is x=22 in terms of braille dots or graph width. we have labels
 		// for points plotted at 20 and 24 so we should use the label corresponding to 20
 		// or the 5th item in the labels array
+		//
+		// seems ok in topui so far. need to figure out why its not plotting full width
+		// also doesnt immediately show data and some pods mem seems behind by 1
 		xCoordinate := 0
 		pos := 0
 		remaining := c.graphWidth / 2
