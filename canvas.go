@@ -187,6 +187,16 @@ func (c Canvas) String() string {
 		var axisStr, labelStr strings.Builder
 		axisStr.WriteString(fmt.Sprintf("%s╰", padding(c.horizontalOffset-1)))
 		labelStr.WriteString(padding(c.horizontalOffset)) // y-axis line plus the padding
+
+		// need to put proper labels on the x axis based on how many points have been
+		// plotted and the horizontal scale. if we have a graph thats 103 in width
+		// then there are 206 plottable points. if the max number we're plotting is 50
+		// then the horizontal scale is 206/50 = 4.12. that means we plot points at
+		// 0, 4, 8, 12, 16, 20, 24, 28, 32, 37, ...
+		// label 0 is '└12:34:56  ', 11 chars wide so next label can be at x coordinate
+		// 11. this is x=22 in terms of braille dots or graph width. we have labels
+		// for points plotted at 20 and 24 so we should use the label corresponding to 20
+		// or the 5th item in the labels array
 		xCoordinate := 0
 		pos := 0
 		remaining := c.graphWidth / 2
@@ -207,12 +217,13 @@ func (c Canvas) String() string {
 			labelStr.WriteString("  ")
 			axisStr.WriteString("──")
 			remaining -= 2
-			f := float64(len(labelToAdd)+3) * 2 / c.horizontalScale
-			if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
-				pos = i
-			} else {
-				pos += int(f)
-			}
+			//             f := float64((len(labelToAdd)+3)*2) / c.horizontalScale
+			pos += ((len(labelToAdd) + 3) * 2) / int(c.horizontalScale)
+			//             if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
+			//                 pos = i
+			//             } else {
+			//                 pos += int(f)
+			//             }
 			//             pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
 			if pos >= len(c.HorizontalLabels) {
 				axisStr.WriteString(strings.Repeat("─", remaining))
