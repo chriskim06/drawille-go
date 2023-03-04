@@ -192,7 +192,8 @@ func (c Canvas) String() string {
 		remaining := c.graphWidth / 2
 		for remaining > 0 {
 			labelToAdd := c.HorizontalLabels[pos]
-			if len(labelToAdd)+1 > remaining {
+			xCoordinate += len(labelToAdd) + 3
+			if len(labelToAdd)+1 > remaining || xCoordinate > c.maxX/2 {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
@@ -206,10 +207,6 @@ func (c Canvas) String() string {
 			labelStr.WriteString("  ")
 			axisStr.WriteString("──")
 			remaining -= 2
-			xCoordinate += len(labelToAdd) + 3
-			if xCoordinate > c.maxX/2 {
-				break
-			}
 			f := float64(len(labelToAdd)+3) * 2 / c.horizontalScale
 			if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
 				pos = i
@@ -217,7 +214,7 @@ func (c Canvas) String() string {
 				pos += int(f)
 			}
 			//             pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
-			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX/2 {
+			if pos >= len(c.HorizontalLabels) {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
