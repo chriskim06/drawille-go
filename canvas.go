@@ -122,23 +122,32 @@ func (c *Canvas) Plot(data [][]float64) string {
 			line = line[start:]
 		}
 		previousHeight := int((line[0] / maxDataPoint) * float64(c.graphHeight-1))
+		length := 0
 		for j, val := range line {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
+			x0 := int(float64(j) * c.horizontalScale)
+			x1 := int(float64(j+1) * c.horizontalScale)
 			c.setLine(
 				image.Pt(
-					(c.horizontalOffset+int(float64(j)*c.horizontalScale)),
+					//                     (c.horizontalOffset+int(float64(j)*c.horizontalScale)),
+					x0,
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.horizontalOffset+int(float64(j+1)*c.horizontalScale)),
+					//                     (c.horizontalOffset+int(float64(j+1)*c.horizontalScale)),
+					x1,
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
 			)
+			length += x1 - x0
 			previousHeight = height
-			if int(float64(j+1)*c.horizontalScale) > c.maxX {
-				c.maxX = int(float64(j+1)*c.horizontalScale) / 2
-			}
+			//             if int(float64(j+1)*c.horizontalScale) > c.maxX {
+			//                 c.maxX = int(float64(j+1)*c.horizontalScale) / 2
+			//             }
+		}
+		if length > c.maxX {
+			c.maxX = length
 		}
 	}
 	return c.String()
@@ -205,7 +214,7 @@ func (c Canvas) String() string {
 				pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
 			}
 			//             pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
-			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX {
+			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX/2 {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
