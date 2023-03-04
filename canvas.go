@@ -207,11 +207,14 @@ func (c Canvas) String() string {
 			axisStr.WriteString("──")
 			remaining -= 2
 			xCoordinate += len(labelToAdd) + 3
-			f := float64(len(labelToAdd)+3) / c.horizontalScale
+			if xCoordinate > c.maxX/2 {
+				break
+			}
+			f := float64(len(labelToAdd)+3) * 2 / c.horizontalScale
 			if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
 				pos = i
 			} else {
-				pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
+				pos += int(f)
 			}
 			//             pos += int(float64(len(labelToAdd)+3) / c.horizontalScale)
 			if pos >= len(c.HorizontalLabels) || xCoordinate > c.maxX/2 {
