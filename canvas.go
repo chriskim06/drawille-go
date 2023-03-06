@@ -3,6 +3,7 @@ package drawille
 import (
 	"fmt"
 	"image"
+	"math"
 	"strings"
 )
 
@@ -109,7 +110,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 	// plot the data
 	c.horizontalScale = 1.0
 	if c.NumDataPoints > 0 {
-		c.horizontalScale = float64(c.graphWidth) / float64(c.NumDataPoints)
+		c.horizontalScale = math.Round(float64(c.graphWidth/c.NumDataPoints) + 0.5)
 	}
 	for i, line := range data {
 		if len(line) == 0 {
@@ -122,7 +123,6 @@ func (c *Canvas) Plot(data [][]float64) string {
 			line = line[start:]
 		}
 		previousHeight := int((line[0] / maxDataPoint) * float64(c.graphHeight-1))
-		length := 0
 		for j, val := range line {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			x0 := int(float64(j) * c.horizontalScale)
@@ -140,17 +140,22 @@ func (c *Canvas) Plot(data [][]float64) string {
 				),
 				c.lineColor(i),
 			)
-			length += x1 - x0
 			previousHeight = height
-			//             if int(float64(j+1)*c.horizontalScale) > c.maxX {
-			//                 c.maxX = int(float64(j+1)*c.horizontalScale) / 2
-			//             }
-		}
-		if length > c.maxX {
-			c.maxX = length
 		}
 	}
+	//     c.maxX = int(float64(dataLen) * c.horizontalScale)
+	c.maxX = c.maxPoint() - c.horizontalOffset + 1
 	return c.String()
+}
+
+func (c Canvas) maxPoint() int {
+	max := 0
+	for k, v := range c.points {
+		if v.Rune != 0 && k.X > max {
+			max = k.X
+		}
+	}
+	return max
 }
 
 // String allows the Canvas to implement the Stringer interface
@@ -163,7 +168,7 @@ func (c Canvas) String() string {
 		if c.ShowAxis {
 			b.WriteString(c.verticalLabels[row])
 		}
-		for col := c.horizontalOffset; col < c.area.Dx(); col++ {
+		for col := c.horizontalOffset; col < c.area.Dx()+1; col++ {
 			b.WriteString(cells[image.Pt(col, row)].String())
 		}
 		if row < c.graphHeight-1 {
@@ -199,13 +204,31 @@ func (c Canvas) String() string {
 		// or the 5th item in the labels array
 		//
 		// seems ok in topui so far. need to figure out why its not plotting full width
-		// also doesnt immediately show data and some pods mem seems behind by 1
-		xCoordinate := 0
-		pos := 0
+		// first label should always be printed and some pods mem seems behind by 1
+		// real fucked up right now. maybe misunderstanding how points are graphed
+		// for a point in the data it gets graphed in one braille cell maybe something here
+		//         xCoordinate := 0
+		//         pos := 0
 		remaining := c.graphWidth / 2
-		for remaining > 0 {
+		start := c.HorizontalLabels[0]
+		end := c.HorizontalLabels[len(c.HorizontalLabels)-1]
+		minWidth := len(start) + len(end) + 4
+		labelStr.WriteString(fmt.Sprintf("%s", wrap("└", c.AxisColor)+wrap(start, c.LabelColor)))
+		if c.maxX >= minWidth {
+			labelStr.WriteString(fmt.Sprintf(
+				"%s%s",
+				padding(c.maxX-minWidth+2),
+				wrap(end, c.LabelColor)+wrap("┘", c.AxisColor),
+			))
+			axisStr.WriteString("┬" + strings.Repeat("─", c.maxX-2) + "┬")
+			remaining -= c.maxX - 1
+		} else {
+			axisStr.WriteString("┬")
+			remaining--
+		}
+		axisStr.WriteString(strings.Repeat("─", remaining))
+		/*for remaining > 0 {
 			labelToAdd := c.HorizontalLabels[pos]
-			xCoordinate += len(labelToAdd) + 3
 			if len(labelToAdd)+1 > remaining || xCoordinate > c.maxX/2 {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
@@ -220,8 +243,9 @@ func (c Canvas) String() string {
 			labelStr.WriteString("  ")
 			axisStr.WriteString("──")
 			remaining -= 2
+			xCoordinate += len(labelToAdd) + 3
 			//             f := float64((len(labelToAdd)+3)*2) / c.horizontalScale
-			pos += ((len(labelToAdd) + 3) * 2) / int(c.horizontalScale)
+			pos += (xCoordinate * 2) / int(c.horizontalScale)
 			//             if i := int(float64(pos) + f + 0.5); i < len(c.HorizontalLabels) {
 			//                 pos = i
 			//             } else {
@@ -232,7 +256,7 @@ func (c Canvas) String() string {
 				axisStr.WriteString(strings.Repeat("─", remaining))
 				break
 			}
-		}
+		}*/
 
 		b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
 		b.WriteString(labelStr.String())

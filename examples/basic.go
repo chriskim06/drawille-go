@@ -29,7 +29,6 @@ func main() {
 		i++
 	}
 	s.HorizontalLabels = labels
-	fmt.Println(labels)
 	fmt.Print(s.Plot(data))
 	fmt.Println()
 	for x := 0; x < 20; x++ {
