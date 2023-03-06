@@ -3,6 +3,7 @@ package drawille
 import (
 	"fmt"
 	"image"
+	"math"
 	"strings"
 )
 
@@ -19,8 +20,23 @@ type Canvas struct {
 	// to come up with a good way to print stuff so offloading some
 	// of that work to the user. when the horizontal labels arent
 	// provided an empty line is printed
-	//     HorizontalLabels []string
-	verticalLabels []string
+	HorizontalLabels []string
+	verticalLabels   []string
+
+	// this value is used to determine the horizontal scale when
+	// graphing points in the plot. with braille characters, each
+	// cell represents 2 points along the x axis. so if the total
+	// graphable area in the canvas is 50 cells then we can plot
+	// 100 points of data. if we only want to plot 50 data points
+	// then the horizontal scale needs to be 2 in order to utilize
+	// the whole graphable area. since image uses ints for points
+	// the graphing gets a little weird. ex:
+	// graphable area = 88
+	// num of data points = 50
+	// horizontal scale = 88/50 = 1.76
+	// 0, 1.76, 3.52, 5.28, 7.04, 8.8, 10.56, 12.32, 14.08
+	// this would map points at 0,1,3,5,7,8,10,12,14
+	NumDataPoints int
 
 	// the bounds of the canvas
 	area image.Rectangle
@@ -32,6 +48,9 @@ type Canvas struct {
 
 	horizontalOffset int
 	verticalOffset   int
+	horizontalScale  float64
+	verticalScale    float64
+	maxX             int
 }
 
 // NewCanvas creates a default canvas
@@ -60,12 +79,12 @@ func (c *Canvas) Plot(data [][]float64) string {
 	// setup y-axis labels
 	if c.ShowAxis {
 		c.graphHeight--
-		verticalScale := maxDataPoint / float64(c.graphHeight-1)
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
 		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus space before it
-		//         if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
-		//             graphHeight--
-		//         }
+		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
+			c.graphHeight--
+		}
+		verticalScale := maxDataPoint / float64(c.graphHeight-1)
 		for i := c.graphHeight - 1; i >= 0; i-- {
 			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
 			padStr := ""
@@ -80,12 +99,19 @@ func (c *Canvas) Plot(data [][]float64) string {
 			)
 		}
 	}
-	c.graphWidth = c.area.Dx() - c.horizontalOffset
+	c.graphWidth = (c.area.Dx() - c.horizontalOffset) * 2
 
 	// plot the data
+	c.horizontalScale = 1.0
+	if c.NumDataPoints > 0 {
+		c.horizontalScale = math.Round(float64(c.graphWidth/c.NumDataPoints) + 0.5)
+	}
 	for i, line := range data {
 		if len(line) == 0 {
 			continue
+		} else if c.NumDataPoints > 0 && len(line) > c.NumDataPoints {
+			start := len(line) - c.NumDataPoints
+			line = line[start:]
 		} else if len(line) > c.graphWidth {
 			start := len(line) - c.graphWidth
 			line = line[start:]
@@ -95,11 +121,11 @@ func (c *Canvas) Plot(data [][]float64) string {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
-					(c.horizontalOffset+j)*2,
+					c.horizontalOffset+int(float64(j)*c.horizontalScale),
 					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
-					(c.horizontalOffset+j+1)*2,
+					c.horizontalOffset+int(float64(j+1)*c.horizontalScale),
 					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
@@ -107,6 +133,7 @@ func (c *Canvas) Plot(data [][]float64) string {
 			previousHeight = height
 		}
 	}
+	c.maxX = c.maxPoint() - c.horizontalOffset + 1
 	return c.String()
 }
 
@@ -130,46 +157,42 @@ func (c Canvas) String() string {
 
 	if c.ShowAxis {
 		b.WriteString("\n")
-		b.WriteString(padding(c.horizontalOffset - 1))
-		b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
 
 		// no labels for the x-axis so just draw a line
 		// or caller didnt properly update the x-axis labels
-		//         if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > c.graphWidth {
-		//             b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
-		//             return b.String()
-		//         }
+		if len(c.HorizontalLabels) == 0 || len(c.HorizontalLabels) > c.graphWidth {
+			b.WriteString(padding(c.horizontalOffset - 1))
+			b.WriteString(wrap(fmt.Sprintf("╰%s", strings.Repeat("─", c.graphWidth)), c.AxisColor))
+			return b.String()
+		}
 
-		//         var axisStr, labelStr strings.Builder
-		//         axisStr.WriteString("╰─")
-		//         labelStr.WriteString(padding(c.horizontalOffset + 1)) // y-axis line plus the padding
-		//         pos := 0
-		//         remaining := c.graphWidth
-		//         for remaining > 0 {
-		//             labelToAdd := c.HorizontalLabels[pos]
-		//             if len(labelToAdd)+1 > remaining {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             labelStr.WriteString(wrap("└", c.AxisColor) + wrap(labelToAdd, c.LabelColor))
-		//             axisStr.WriteString("┬" + strings.Repeat("─", len(labelToAdd)))
-		//             remaining -= len(labelToAdd) + 1
-		//             if remaining < 2 {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             labelStr.WriteString("  ")
-		//             remaining -= 2
-		//             pos += len(labelToAdd) + 3
-		//             if pos >= len(c.HorizontalLabels) {
-		//                 axisStr.WriteString(strings.Repeat("─", remaining))
-		//                 break
-		//             }
-		//             axisStr.WriteString("──")
-		//         }
-		//
-		//         b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
-		//         b.WriteString(labelStr.String())
+		var axisStr, labelStr strings.Builder
+		axisStr.WriteString(fmt.Sprintf("%s╰", padding(c.horizontalOffset-1)))
+		labelStr.WriteString(padding(c.horizontalOffset)) // y-axis line plus the padding
+
+		remaining := c.graphWidth / 2
+		start := c.HorizontalLabels[0]
+		end := c.HorizontalLabels[len(c.HorizontalLabels)-1]
+		minWidth := len(start) + len(end) + 4
+		labelStr.WriteString(fmt.Sprintf("%s", wrap("└", c.AxisColor)+wrap(start, c.LabelColor)))
+		if c.maxX >= minWidth {
+			labelStr.WriteString(fmt.Sprintf(
+				"%s%s",
+				padding(c.maxX-minWidth+2),
+				wrap(end, c.LabelColor)+wrap("┘", c.AxisColor),
+			))
+			axisStr.WriteString("┬" + strings.Repeat("─", c.maxX-2) + "┬")
+			remaining -= c.maxX
+		} else {
+			axisStr.WriteString("┬")
+			remaining--
+		}
+		if remaining > 0 {
+			axisStr.WriteString(strings.Repeat("─", remaining))
+		}
+
+		b.WriteString(wrap(axisStr.String(), c.AxisColor) + "\n")
+		b.WriteString(labelStr.String())
 	}
 	return b.String()
 }
@@ -197,8 +220,21 @@ func (c *Canvas) clear() {
 	c.verticalLabels = []string{}
 }
 
+func (c Canvas) maxPoint() int {
+	max := 0
+	for k, v := range c.points {
+		if v.Rune != 0 && k.X > max {
+			max = k.X
+		}
+	}
+	return max
+}
+
 func (c *Canvas) setPoint(p image.Point, color Color) {
 	point := image.Pt(p.X/2, p.Y/4)
+	if !point.In(c.area) {
+		return
+	}
 	c.points[point] = Cell{
 		c.points[point].Rune | BRAILLE[p.Y%4][p.X%2],
 		color,
