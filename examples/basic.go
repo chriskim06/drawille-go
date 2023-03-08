@@ -2,12 +2,19 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/chriskim06/drawille-go"
 )
 
 var t = time.Now()
+var rad = -1
+
+func sindata() float64 {
+	rad++
+	return 2 * math.Sin((math.Pi/9)*float64(rad))
+}
 
 func main() {
 	s := drawille.NewCanvas(103, 25)
@@ -24,17 +31,20 @@ func main() {
 	labels := []string{}
 	data := [][]float64{{}, {}}
 	for x := 0; x < 16; x++ {
-		data[0] = append(data[0], 150)
-		data[1] = append(data[1], 25)
+		data[0] = append(data[0], 3)
+		data[1] = append(data[1], sindata())
+		//         data[1] = append(data[1], 25)
 		update(i, &labels)
 		i++
 	}
+	fmt.Println(data[1])
 	s.HorizontalLabels = labels
 	fmt.Print(s.Plot(data))
 	fmt.Println()
 	for x := 0; x < 20; x++ {
-		data[0] = append(data[0], 100)
-		data[1] = append(data[1], 0)
+		data[0] = append(data[0], 3)
+		data[1] = append(data[1], sindata())
+		//         data[1] = append(data[1], 0)
 		update(i, &labels)
 		i++
 	}
@@ -42,8 +52,9 @@ func main() {
 	fmt.Print(s.Plot(data))
 	fmt.Println()
 	for x := 0; x < 14; x++ {
-		data[0] = append(data[0], 80)
-		data[1] = append(data[1], -10)
+		data[0] = append(data[0], 3)
+		data[1] = append(data[1], sindata())
+		//         data[1] = append(data[1], -10)
 		update(i, &labels)
 		i++
 	}

@@ -81,6 +81,10 @@ func (c *Canvas) Fill(data [][]float64) {
 	if c.ShowAxis {
 		c.graphHeight--
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
+		lenMinDataPoint := len(fmt.Sprintf("%.2f", minDataPoint))
+		if lenMinDataPoint > lenMaxDataPoint {
+			lenMaxDataPoint = lenMinDataPoint
+		}
 		c.horizontalOffset = lenMaxDataPoint + 2 // y-axis plus space before it
 		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 			c.graphHeight--
@@ -119,25 +123,22 @@ func (c *Canvas) Fill(data [][]float64) {
 			start := len(line) - c.plotWidth
 			line = line[start:]
 		}
-		percent := 1.0
-		if line[0] != maxDataPoint {
-			percent = line[0] / diff
-		}
-		previousHeight := absInt(int(percent * float64(c.graphHeight-1)))
+
+		// y coordinates are calculated as percentages of the graph height. the percentage
+		// is the current point minus the smallest point in the dataset over the diff
+		// between largest and smallest points. this means that with small graphs there
+		// can be some squashing of the graph due to rounding.
+		previousHeight := int(((line[0] - minDataPoint) / diff) * float64(c.graphHeight-1))
 		for j, val := range line[1:] {
-			percent = 1.0
-			if val != maxDataPoint {
-				percent = val / diff
-			}
-			height := absInt(int(percent * float64(c.graphHeight-1)))
+			height := int(((val - minDataPoint) / diff) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
 					(c.horizontalOffset*2)+int(float64(j)*c.horizontalScale),
-					(c.graphHeight-previousHeight-1)*4,
+					(c.graphHeight-1-previousHeight)*4,
 				),
 				image.Pt(
 					(c.horizontalOffset*2)+int(float64(j+1)*c.horizontalScale),
-					(c.graphHeight-height-1)*4,
+					(c.graphHeight-1-height)*4,
 				),
 				c.lineColor(i),
 			)
