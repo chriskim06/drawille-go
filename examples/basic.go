@@ -18,6 +18,7 @@ func main() {
 	s.LabelColor = drawille.Purple
 	s.AxisColor = drawille.SeaGreen
 	s.NumDataPoints = 50
+	// s.ShowAxis = false
 
 	i := 0
 	labels := []string{}
@@ -63,6 +64,7 @@ func main() {
 	//     }
 	s.HorizontalLabels = labels
 	fmt.Print(s.Plot(data))
+	fmt.Println()
 }
 
 func update(i int, labels *[]string) {

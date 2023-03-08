@@ -3,7 +3,6 @@ package drawille
 import (
 	"fmt"
 	"image"
-	"strings"
 )
 
 func getMaxFloat64From2dSlice(slices [][]float64) float64 {
@@ -16,10 +15,6 @@ func getMaxFloat64From2dSlice(slices [][]float64) float64 {
 		}
 	}
 	return max
-}
-
-func padding(i int) string {
-	return strings.Repeat(" ", i)
 }
 
 func wrap(s string, c Color) string {
@@ -64,4 +59,12 @@ func absInt(x int) int {
 		return x
 	}
 	return -x
+}
+
+func repeatRune(r rune, amount int) []rune {
+	runes := []rune{}
+	for i := 0; i < amount; i++ {
+		runes = append(runes, r)
+	}
+	return runes
 }
