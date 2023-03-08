@@ -21,7 +21,6 @@ type Canvas struct {
 	// of that work to the user. when the horizontal labels arent
 	// provided an empty line is printed
 	HorizontalLabels []string
-	verticalLabels   []string
 
 	// this value is used to determine the horizontal scale when
 	// graphing points in the plot. with braille characters, each
@@ -48,9 +47,7 @@ type Canvas struct {
 	points map[image.Point]Cell
 
 	horizontalOffset int
-	verticalOffset   int
 	horizontalScale  float64
-	// verticalScale    float64
 	maxX int
 }
 
@@ -63,17 +60,16 @@ func NewCanvas(width, height int) Canvas {
 		ShowAxis:       true,
 		area:           image.Rect(0, 0, width, height),
 		points:         make(map[image.Point]Cell),
-		verticalLabels: []string{},
 	}
 	return c
 }
 
-// Plot sets the Canvas and return the string representation of it
-func (c *Canvas) Plot(data [][]float64) string {
+// Fill adds values to the Canvas
+func (c *Canvas) Fill(data [][]float64) {
 	if len(data) == 0 {
-		return ""
+		return
 	}
-	c.clear()
+	c.points = make(map[image.Point]Cell)
 	c.graphHeight = c.area.Dy()
 	maxDataPoint := getMaxFloat64From2dSlice(data)
 
@@ -133,8 +129,6 @@ func (c *Canvas) Plot(data [][]float64) string {
 	if c.ShowAxis {
 		axisRunes := []rune{ORIGIN}
 		remaining := c.plotWidth / 2
-		// no labels for the x-axis so just draw a line
-		// or caller didnt properly update the x-axis labels
 		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= remaining {
 			start := c.HorizontalLabels[0]
 			end := c.HorizontalLabels[len(c.HorizontalLabels)-1]
@@ -155,7 +149,14 @@ func (c *Canvas) Plot(data [][]float64) string {
 		axisRunes = append(axisRunes, repeatRune(XAXIS, remaining)...)
 		c.setRunes(c.graphHeight, c.horizontalOffset-1, c.AxisColor, axisRunes...)
 	}
+}
 
+// Plot sets the Canvas and return the string representation of it
+func (c *Canvas) Plot(data [][]float64) string {
+	if len(data) == 0 {
+		return ""
+	}
+	c.Fill(data)
 	return c.String()
 }
 
@@ -174,29 +175,6 @@ func (c Canvas) String() string {
 	}
 
 	return b.String()
-}
-
-// SetSize changes the size of the Canvas dimensions
-func (c *Canvas) SetSize(width, height int) {
-	c.area = image.Rect(0, 0, width, height)
-}
-
-// GetSize returns the total canvas width and height, including
-// labels, axes, padding, etc.
-func (c Canvas) GetSize() (int, int) {
-	return c.area.Dx(), c.area.Dy()
-}
-
-// GetPlotSize returns the width and height of the area of the
-// rectangle that can contain plot data points
-func (c Canvas) GetPlotSize() (int, int) {
-	width, height := c.GetSize()
-	return width - c.horizontalOffset, height - c.verticalOffset
-}
-
-func (c *Canvas) clear() {
-	c.points = make(map[image.Point]Cell)
-	c.verticalLabels = []string{}
 }
 
 func (c *Canvas) setText(row, col int, text string, color Color) {
