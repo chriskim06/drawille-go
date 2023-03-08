@@ -48,18 +48,18 @@ type Canvas struct {
 
 	horizontalOffset int
 	horizontalScale  float64
-	maxX int
+	maxX             int
 }
 
 // NewCanvas creates a default canvas
 func NewCanvas(width, height int) Canvas {
 	c := Canvas{
-		AxisColor:      Default,
-		LabelColor:     Default,
-		LineColors:     []Color{},
-		ShowAxis:       true,
-		area:           image.Rect(0, 0, width, height),
-		points:         make(map[image.Point]Cell),
+		AxisColor:  Default,
+		LabelColor: Default,
+		LineColors: []Color{},
+		ShowAxis:   true,
+		area:       image.Rect(0, 0, width, height),
+		points:     make(map[image.Point]Cell),
 	}
 	return c
 }
@@ -108,7 +108,7 @@ func (c *Canvas) Fill(data [][]float64) {
 			line = line[start:]
 		}
 		previousHeight := int((line[0] / maxDataPoint) * float64(c.graphHeight-1))
-		for j, val := range line {
+		for j, val := range line[1:] {
 			height := int((val / maxDataPoint) * float64(c.graphHeight-1))
 			c.setLine(
 				image.Pt(
