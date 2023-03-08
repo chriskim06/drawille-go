@@ -25,7 +25,6 @@ func main() {
 	s.LabelColor = drawille.Purple
 	s.AxisColor = drawille.SeaGreen
 	s.NumDataPoints = 50
-	// s.ShowAxis = false
 
 	i := 0
 	labels := []string{}
@@ -33,7 +32,6 @@ func main() {
 	for x := 0; x < 16; x++ {
 		data[0] = append(data[0], 3)
 		data[1] = append(data[1], sindata())
-		//         data[1] = append(data[1], 25)
 		update(i, &labels)
 		i++
 	}
@@ -44,17 +42,15 @@ func main() {
 	for x := 0; x < 20; x++ {
 		data[0] = append(data[0], 3)
 		data[1] = append(data[1], sindata())
-		//         data[1] = append(data[1], 0)
 		update(i, &labels)
 		i++
 	}
 	s.HorizontalLabels = labels
 	fmt.Print(s.Plot(data))
 	fmt.Println()
-	for x := 0; x < 14; x++ {
+	for x := 0; x < 18; x++ {
 		data[0] = append(data[0], 3)
 		data[1] = append(data[1], sindata())
-		//         data[1] = append(data[1], -10)
 		update(i, &labels)
 		i++
 	}
