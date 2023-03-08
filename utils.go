@@ -3,18 +3,23 @@ package drawille
 import (
 	"fmt"
 	"image"
+	"math"
 )
 
-func getMaxFloat64From2dSlice(slices [][]float64) float64 {
+func getMinMaxFloat64From2dSlice(slices [][]float64) (float64, float64) {
 	var max float64
+	min := math.Inf(1)
 	for _, slice := range slices {
 		for _, val := range slice {
 			if val > max {
 				max = val
 			}
+			if val < min {
+				min = val
+			}
 		}
 	}
-	return max
+	return min, max
 }
 
 func wrap(s string, c Color) string {

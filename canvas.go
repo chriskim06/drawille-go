@@ -71,9 +71,9 @@ func (c *Canvas) Fill(data [][]float64) {
 	}
 	c.points = make(map[image.Point]Cell)
 	c.graphHeight = c.area.Dy()
-	maxDataPoint := getMaxFloat64From2dSlice(data)
+	minDataPoint, maxDataPoint := getMinMaxFloat64From2dSlice(data)
 
-	//  y axis
+	// y axis
 	if c.ShowAxis {
 		c.graphHeight--
 		lenMaxDataPoint := len(fmt.Sprintf("%.2f", maxDataPoint))
@@ -81,13 +81,21 @@ func (c *Canvas) Fill(data [][]float64) {
 		if len(c.HorizontalLabels) != 0 && len(c.HorizontalLabels) <= c.area.Dx()-c.horizontalOffset {
 			c.graphHeight--
 		}
-		verticalScale := maxDataPoint / float64(c.graphHeight-1)
-		row := 0
+		//         verticalScale := maxDataPoint / float64(c.graphHeight-1)
+		//         row := 0
+		//         for i := c.graphHeight - 1; i >= 0; i-- {
+		//             val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
+		//             c.setText(row, lenMaxDataPoint-len(val), val, c.LabelColor)
+		//             c.setRunes(row, lenMaxDataPoint+1, c.AxisColor, YAXIS)
+		//             row++
+		//         }
+		cur := minDataPoint
+		verticalScale := (maxDataPoint - minDataPoint) / float64(c.graphHeight-1)
 		for i := c.graphHeight - 1; i >= 0; i-- {
-			val := fmt.Sprintf("%.2f", float64(i)*verticalScale)
-			c.setText(row, lenMaxDataPoint-len(val), val, c.LabelColor)
-			c.setRunes(row, lenMaxDataPoint+1, c.AxisColor, YAXIS)
-			row++
+			val := fmt.Sprintf("%.2f", cur)
+			c.setText(i, lenMaxDataPoint-len(val), val, c.LabelColor)
+			c.setRunes(i, lenMaxDataPoint+1, c.AxisColor, YAXIS)
+			cur += verticalScale
 		}
 	}
 	c.plotWidth = (c.area.Dx() - c.horizontalOffset) * 2
