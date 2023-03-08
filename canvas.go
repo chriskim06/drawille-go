@@ -72,7 +72,10 @@ func (c *Canvas) Fill(data [][]float64) {
 	c.points = make(map[image.Point]Cell)
 	c.graphHeight = c.area.Dy()
 	minDataPoint, maxDataPoint := getMinMaxFloat64From2dSlice(data)
-	diff := maxDataPoint - minDataPoint
+	diff := maxDataPoint
+	if minDataPoint < 0 {
+		diff -= minDataPoint
+	}
 
 	// y axis
 	if c.ShowAxis {
@@ -116,17 +119,25 @@ func (c *Canvas) Fill(data [][]float64) {
 			start := len(line) - c.plotWidth
 			line = line[start:]
 		}
-		previousHeight := int((line[0] / diff) * float64(c.graphHeight-1))
+		percent := 1.0
+		if line[0] != maxDataPoint {
+			percent = line[0] / diff
+		}
+		previousHeight := absInt(int(percent * float64(c.graphHeight-1)))
 		for j, val := range line[1:] {
-			height := int((val / diff) * float64(c.graphHeight-1))
+			percent = 1.0
+			if val != maxDataPoint {
+				percent = val / diff
+			}
+			height := absInt(int(percent * float64(c.graphHeight-1)))
 			c.setLine(
 				image.Pt(
 					(c.horizontalOffset*2)+int(float64(j)*c.horizontalScale),
-					(c.graphHeight-previousHeight)*4,
+					(c.graphHeight-previousHeight-1)*4,
 				),
 				image.Pt(
 					(c.horizontalOffset*2)+int(float64(j+1)*c.horizontalScale),
-					(c.graphHeight-height)*4,
+					(c.graphHeight-height-1)*4,
 				),
 				c.lineColor(i),
 			)

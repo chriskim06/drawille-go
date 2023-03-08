@@ -33,38 +33,44 @@ func main() {
 	fmt.Print(s.Plot(data))
 	fmt.Println()
 	for x := 0; x < 20; x++ {
-		data[0] = append(data[0], 256)
-		data[1] = append(data[1], 40)
+		data[0] = append(data[0], 100)
+		data[1] = append(data[1], 0)
 		update(i, &labels)
 		i++
 	}
+	s.HorizontalLabels = labels
+	fmt.Print(s.Plot(data))
+	fmt.Println()
 	for x := 0; x < 14; x++ {
-		data[0] = append(data[0], 140)
-		data[1] = append(data[1], 17)
+		data[0] = append(data[0], 80)
+		data[1] = append(data[1], -10)
 		update(i, &labels)
 		i++
 	}
 	s.HorizontalLabels = labels
 	fmt.Print(s.Plot(data))
 	fmt.Println()
-	for x := 0; x < 7; x++ {
-		data[0] = append(data[0], 256)
-		data[1] = append(data[1], 17)
-		update(i, &labels)
-		i++
-	}
-	labels = labels[7:]
-	data[0] = data[0][7:]
-	data[1] = data[1][7:]
-	//     for x := 0; x < 18; x++ {
-	//         data[0] = append(data[0], 355)
-	//         data[1] = append(data[1], 17)
-	//         update(i, &labels)
-	//         i++
-	//     }
-	s.HorizontalLabels = labels
-	fmt.Print(s.Plot(data))
-	fmt.Println()
+	//	for x := 0; x < 7; x++ {
+	//	    data[0] = append(data[0], 256)
+	//	    data[1] = append(data[1], 17)
+	//	    update(i, &labels)
+	//	    i++
+	//	}
+	//
+	// labels = labels[7:]
+	// data[0] = data[0][7:]
+	// data[1] = data[1][7:]
+	//
+	//	for x := 0; x < 18; x++ {
+	//	    data[0] = append(data[0], 355)
+	//	    data[1] = append(data[1], 17)
+	//	    update(i, &labels)
+	//	    i++
+	//	}
+	//
+	// s.HorizontalLabels = labels
+	// fmt.Print(s.Plot(data))
+	// fmt.Println()
 }
 
 func update(i int, labels *[]string) {
